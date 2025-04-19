@@ -73,8 +73,10 @@ const SceneSetup: React.FC = () => {
         panCamera(-deltaX * 0.5, -deltaY * 0.5);
       } 
       else if (action === 'zoom' && delta !== undefined) {
-        // Make zooming more responsive on mobile
-        zoomCamera(delta * 0.5);
+        // For zoom events, we'll handle them through the standard zoomCamera function
+        // but with increased sensitivity
+        console.log('Processing zoom:', delta);
+        zoomCamera(delta * 5); // Multiply by 5 for more noticeable zoom on mobile
       }
       else if (action === 'rotate' && angle !== undefined) {
         // For rotation, we'll simply store the angle change and apply it in the useFrame hook

@@ -117,13 +117,21 @@ const MobileControls: React.FC = () => {
           const currentDist = getDistance(e.touches[0], e.touches[1]);
           const deltaDist = currentDist - touchState.lastDist;
           
-          // Adjust zoom speed
-          const zoomSpeed = 0.02;
+          // Adjust zoom speed - increase for better responsiveness
+          const zoomSpeed = 0.1;
           
-          if (Math.abs(deltaDist) > 2) {
+          // Make zoom threshold smaller so it's more responsive
+          if (Math.abs(deltaDist) > 1) {
+            // Pinch in (fingers getting closer) = zoom out = positive delta
+            // Pinch out (fingers getting further) = zoom in = negative delta
+            // In our system, negative delta zooms in, positive delta zooms out
+            // So we negate the deltaDist for natural feel
+            
+            console.log(`Pinch detected: ${deltaDist > 0 ? 'out (zoom in)' : 'in (zoom out)'}, delta: ${deltaDist}`);
+            
             emitCameraControl({
               action: 'zoom',
-              delta: -deltaDist * zoomSpeed // Invert for natural feel: pinch in = zoom out
+              delta: -deltaDist * zoomSpeed
             });
             
             touchState.lastDist = currentDist;
