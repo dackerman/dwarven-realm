@@ -49,18 +49,56 @@ const SceneSetup: React.FC = () => {
     currentY: 0,
   });
   
+  // For camera rotation
+  const cameraRotation = useRef(0);
+  
   // Handle mobile control events
   useEffect(() => {
     const handleCameraControl = (e: Event) => {
-      const customEvent = e as CustomEvent<{action: 'pan' | 'zoom', deltaX?: number, deltaY?: number, delta?: number}>;
-      const { action, deltaX, deltaY, delta } = customEvent.detail;
+      const customEvent = e as CustomEvent<{
+        action: 'pan' | 'zoom' | 'rotate', 
+        deltaX?: number, 
+        deltaY?: number, 
+        delta?: number,
+        angle?: number
+      }>;
+      
+      const { action, deltaX, deltaY, delta, angle } = customEvent.detail;
       
       console.log('Camera control event received:', customEvent.detail);
       
       if (action === 'pan' && deltaX !== undefined && deltaY !== undefined) {
+        // Make panning more responsive on mobile
         panCamera(-deltaX * 0.5, -deltaY * 0.5);
-      } else if (action === 'zoom' && delta !== undefined) {
+      } 
+      else if (action === 'zoom' && delta !== undefined) {
+        // Make zooming more responsive on mobile
         zoomCamera(delta * 0.5);
+      }
+      else if (action === 'rotate' && angle !== undefined) {
+        // Handle camera rotation around y-axis
+        const { camera } = useThree.getState();
+        const rotationAmount = angle * 2; // Adjust sensitivity
+        
+        // Update the reference value
+        cameraRotation.current += rotationAmount;
+        
+        // Create a rotation matrix around Y axis
+        const rotationMatrix = new THREE.Matrix4().makeRotationY(rotationAmount);
+        
+        // Apply rotation to camera position (keep same distance from center)
+        const cameraPosition = new THREE.Vector3().copy(camera.position);
+        cameraPosition.applyMatrix4(rotationMatrix);
+        camera.position.copy(cameraPosition);
+        
+        // Rotate camera's up vector to keep orientation
+        const upVector = new THREE.Vector3(0, 1, 0);
+        camera.up.copy(upVector);
+        
+        // Make camera look at the center
+        camera.lookAt(0, 0, 0);
+        
+        console.log('Camera rotated by', angle, 'radians. Total rotation:', cameraRotation.current);
       }
     };
     

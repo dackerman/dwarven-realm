@@ -1,164 +1,217 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useGame } from '../../lib/stores/useGame';
+import React, { useEffect, useRef } from 'react';
 
 // We'll use custom events to communicate with the IsometricScene component
 const CAMERA_CONTROL_EVENT = 'camera-control';
 
+interface TouchState {
+  isDragging: boolean;
+  isPinching: boolean;
+  isRotating: boolean;
+  touchCount: number;
+  lastX: number;
+  lastY: number;
+  lastDist: number;
+  lastAngle: number;
+}
+
 interface CameraControlEvent {
-  action: 'pan' | 'zoom';
+  action: 'pan' | 'zoom' | 'rotate';
   deltaX?: number;
   deltaY?: number;
   delta?: number;
+  angle?: number;
 }
 
 const MobileControls: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(true);
-  const { settings } = useGame();
+  const touchAreaRef = useRef<HTMLDivElement>(null);
   
   // Helper function to dispatch camera control events
   const emitCameraControl = (data: CameraControlEvent) => {
     const event = new CustomEvent(CAMERA_CONTROL_EVENT, { detail: data });
     window.dispatchEvent(event);
-    console.log('Mobile control event:', data);
+    console.log('Touch control event:', data);
   };
   
-  // Camera control functions
-  const panCamera = (deltaX: number, deltaY: number) => {
-    emitCameraControl({ action: 'pan', deltaX, deltaY });
-  };
-  
-  const zoomCamera = (delta: number) => {
-    emitCameraControl({ action: 'zoom', delta });
-  };
-  
-  // Handle button clicks
-  const handlePanUp = () => panCamera(0, 1);
-  const handlePanDown = () => panCamera(0, -1);
-  const handlePanLeft = () => panCamera(-1, 0);
-  const handlePanRight = () => panCamera(1, 0);
-  const handleZoomIn = () => zoomCamera(1);
-  const handleZoomOut = () => zoomCamera(-1);
-  
-  // Hide controls after a period of inactivity
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 10000); // 10 seconds
+    // Track touch state
+    const touchState: TouchState = {
+      isDragging: false,
+      isPinching: false,
+      isRotating: false,
+      touchCount: 0,
+      lastX: 0,
+      lastY: 0,
+      lastDist: 0,
+      lastAngle: 0
+    };
     
-    return () => clearTimeout(timer);
+    // Get touch element
+    const touchArea = touchAreaRef.current;
+    if (!touchArea) return;
+    
+    // Calculate distance between two touch points
+    const getDistance = (touch1: Touch, touch2: Touch): number => {
+      const dx = touch1.clientX - touch2.clientX;
+      const dy = touch1.clientY - touch2.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+    
+    // Calculate angle between two touch points
+    const getAngle = (touch1: Touch, touch2: Touch): number => {
+      return Math.atan2(
+        touch2.clientY - touch1.clientY,
+        touch2.clientX - touch1.clientX
+      );
+    };
+    
+    // Handle touch start
+    const handleTouchStart = (e: TouchEvent) => {
+      touchState.touchCount = e.touches.length;
+      
+      if (touchState.touchCount === 1) {
+        // Single touch for panning
+        touchState.isDragging = true;
+        touchState.isPinching = false;
+        touchState.isRotating = false;
+        touchState.lastX = e.touches[0].clientX;
+        touchState.lastY = e.touches[0].clientY;
+      } 
+      else if (touchState.touchCount === 2) {
+        // Two touches for pinch zoom and rotation
+        touchState.isDragging = false;
+        touchState.isPinching = true;
+        touchState.isRotating = true;
+        touchState.lastDist = getDistance(e.touches[0], e.touches[1]);
+        touchState.lastAngle = getAngle(e.touches[0], e.touches[1]);
+      }
+    };
+    
+    // Handle touch move
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent default scrolling behavior
+      
+      if (touchState.touchCount === 1 && touchState.isDragging) {
+        // Handle panning with one finger
+        const deltaX = e.touches[0].clientX - touchState.lastX;
+        const deltaY = e.touches[0].clientY - touchState.lastY;
+        
+        // Speed factor - adjust as needed to make it feel more responsive
+        const speedFactor = 0.05;
+        
+        if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+          emitCameraControl({
+            action: 'pan',
+            deltaX: deltaX * speedFactor,
+            deltaY: deltaY * speedFactor
+          });
+          
+          touchState.lastX = e.touches[0].clientX;
+          touchState.lastY = e.touches[0].clientY;
+        }
+      } 
+      else if (touchState.touchCount === 2) {
+        // Handle two-finger gestures
+        
+        if (touchState.isPinching) {
+          // Handle pinch zoom
+          const currentDist = getDistance(e.touches[0], e.touches[1]);
+          const deltaDist = currentDist - touchState.lastDist;
+          
+          // Adjust zoom speed
+          const zoomSpeed = 0.02;
+          
+          if (Math.abs(deltaDist) > 2) {
+            emitCameraControl({
+              action: 'zoom',
+              delta: -deltaDist * zoomSpeed // Invert for natural feel: pinch in = zoom out
+            });
+            
+            touchState.lastDist = currentDist;
+          }
+        }
+        
+        if (touchState.isRotating) {
+          // Handle rotation
+          const currentAngle = getAngle(e.touches[0], e.touches[1]);
+          const deltaAngle = currentAngle - touchState.lastAngle;
+          
+          // Only emit if there's significant rotation to avoid jitter
+          if (Math.abs(deltaAngle) > 0.05) {
+            emitCameraControl({
+              action: 'rotate',
+              angle: deltaAngle
+            });
+            
+            touchState.lastAngle = currentAngle;
+          }
+        }
+      }
+    };
+    
+    // Handle touch end
+    const handleTouchEnd = (e: TouchEvent) => {
+      touchState.touchCount = e.touches.length;
+      
+      if (touchState.touchCount === 0) {
+        // All fingers lifted
+        touchState.isDragging = false;
+        touchState.isPinching = false;
+        touchState.isRotating = false;
+      } 
+      else if (touchState.touchCount === 1) {
+        // One finger left, back to panning
+        touchState.isDragging = true;
+        touchState.isPinching = false;
+        touchState.isRotating = false;
+        touchState.lastX = e.touches[0].clientX;
+        touchState.lastY = e.touches[0].clientY;
+      }
+    };
+    
+    // Add event listeners
+    touchArea.addEventListener('touchstart', handleTouchStart, { passive: false });
+    touchArea.addEventListener('touchmove', handleTouchMove, { passive: false });
+    touchArea.addEventListener('touchend', handleTouchEnd, { passive: false });
+    touchArea.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+    
+    // Clean up
+    return () => {
+      touchArea.removeEventListener('touchstart', handleTouchStart);
+      touchArea.removeEventListener('touchmove', handleTouchMove);
+      touchArea.removeEventListener('touchend', handleTouchEnd);
+      touchArea.removeEventListener('touchcancel', handleTouchEnd);
+    };
   }, []);
   
-  // Show controls when screen is tapped
-  const handleTap = () => {
-    setIsVisible(true);
-    
-    // Hide again after 10 seconds
-    setTimeout(() => {
-      setIsVisible(false);
-    }, 10000);
-  };
-  
-  if (!isVisible) {
-    return (
-      <div 
-        className="absolute bottom-20 right-4 p-3 bg-gray-900/60 rounded-full pointer-events-auto"
-        onClick={handleTap}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M8 7l4-4 4 4"></path>
-          <path d="M8 17l4 4 4-4"></path>
-          <path d="M4 11h16"></path>
-        </svg>
-      </div>
-    );
-  }
-  
   return (
-    <div className="absolute bottom-20 right-4 pointer-events-auto">
-      {/* Navigation Controls */}
-      <div className="grid grid-cols-3 gap-1 p-1 bg-gray-900/80 rounded-lg">
-        {/* Top row */}
-        <div className="w-12 h-12"></div>
-        <button 
-          className="flex items-center justify-center w-12 h-12 rounded bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white"
-          onClick={handlePanUp}
-          aria-label="Pan up"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 19V5M5 12l7-7 7 7"></path>
+    <div 
+      ref={touchAreaRef}
+      className="absolute inset-0 touch-none z-10 pointer-events-auto"
+      style={{ touchAction: 'none' }}
+    >
+      {/* Information panel in the bottom corner to indicate touch controls are available */}
+      <div className="absolute bottom-4 right-4 p-2 rounded-lg bg-gray-900/70 text-white text-sm pointer-events-none">
+        <div className="flex items-center space-x-2 mb-1">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
           </svg>
-        </button>
-        <div className="w-12 h-12"></div>
-        
-        {/* Middle row */}
-        <button 
-          className="flex items-center justify-center w-12 h-12 rounded bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white"
-          onClick={handlePanLeft}
-          aria-label="Pan left"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"></path>
-          </svg>
-        </button>
-        <button 
-          className="flex items-center justify-center w-12 h-12 rounded bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white"
-          onClick={() => setIsVisible(false)}
-          aria-label="Hide controls"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="8" y1="12" x2="16" y2="12"></line>
-          </svg>
-        </button>
-        <button 
-          className="flex items-center justify-center w-12 h-12 rounded bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white"
-          onClick={handlePanRight}
-          aria-label="Pan right"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M5 12h14M12 5l7 7-7 7"></path>
-          </svg>
-        </button>
-        
-        {/* Bottom row */}
-        <div className="w-12 h-12"></div>
-        <button 
-          className="flex items-center justify-center w-12 h-12 rounded bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white"
-          onClick={handlePanDown}
-          aria-label="Pan down"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 5v14M19 12l-7 7-7-7"></path>
-          </svg>
-        </button>
-        <div className="w-12 h-12"></div>
-      </div>
-      
-      {/* Zoom Controls */}
-      <div className="mt-2 flex flex-col gap-1 items-center bg-gray-900/80 p-1 rounded-lg">
-        <button 
-          className="flex items-center justify-center w-12 h-12 rounded bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white"
-          onClick={handleZoomIn}
-          aria-label="Zoom in"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <span>Pan: one finger drag</span>
+        </div>
+        <div className="flex items-center space-x-2 mb-1">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             <line x1="11" y1="8" x2="11" y2="14"></line>
             <line x1="8" y1="11" x2="14" y2="11"></line>
           </svg>
-        </button>
-        <button 
-          className="flex items-center justify-center w-12 h-12 rounded bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white"
-          onClick={handleZoomOut}
-          aria-label="Zoom out"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            <line x1="8" y1="11" x2="14" y2="11"></line>
+          <span>Zoom: pinch</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M15 15L9 9m0 6l6-6"/>
           </svg>
-        </button>
+          <span>Rotate: two finger twist</span>
+        </div>
       </div>
     </div>
   );
