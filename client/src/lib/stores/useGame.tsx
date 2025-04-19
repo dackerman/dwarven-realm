@@ -32,6 +32,7 @@ interface GameState {
   setWeather: (weather: "clear" | "rainy" | "foggy" | "stormy") => void;
   
   moveCamera: (x: number, y: number, z: number) => void;
+  panCamera: (x: number, y: number) => void;
   zoomCamera: (delta: number) => void;
   resetCamera: () => void;
   
@@ -150,6 +151,16 @@ export const useGame = create<GameState>()(
           x: state.cameraPosition.x + x,
           y: state.cameraPosition.y + y,
           z: state.cameraPosition.z + z
+        }
+      }));
+    },
+    
+    panCamera: (x, y) => {
+      set((state) => ({
+        cameraPosition: {
+          x: state.cameraPosition.x + x,
+          y: state.cameraPosition.y,
+          z: state.cameraPosition.z + y
         }
       }));
     },

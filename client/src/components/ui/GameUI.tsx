@@ -6,6 +6,8 @@ import { useGame } from '../../lib/stores/useGame';
 import { TaskType } from '@shared/schema';
 import TimeControl from './TimeControl';
 import ConversationDisplay from './ConversationDisplay';
+import MobileControls from './MobileControls';
+import { useIsMobile } from '../../hooks/use-is-mobile';
 
 const GameUI: React.FC = () => {
   const { 
@@ -374,6 +376,9 @@ const GameUI: React.FC = () => {
       
       {/* Conversation Display - only show if dialogues are enabled in settings */}
       {settings.showDialogues && <ConversationDisplay maxMessages={10} />}
+      
+      {/* Mobile Controls - only show on mobile devices */}
+      {useIsMobile() && <MobileControls />}
     </div>
   );
 };
