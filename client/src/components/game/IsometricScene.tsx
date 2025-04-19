@@ -49,6 +49,29 @@ const SceneSetup: React.FC = () => {
     currentY: 0,
   });
   
+  // Handle mobile control events
+  useEffect(() => {
+    const handleCameraControl = (e: Event) => {
+      const customEvent = e as CustomEvent<{action: 'pan' | 'zoom', deltaX?: number, deltaY?: number, delta?: number}>;
+      const { action, deltaX, deltaY, delta } = customEvent.detail;
+      
+      console.log('Camera control event received:', customEvent.detail);
+      
+      if (action === 'pan' && deltaX !== undefined && deltaY !== undefined) {
+        panCamera(-deltaX * 0.5, -deltaY * 0.5);
+      } else if (action === 'zoom' && delta !== undefined) {
+        zoomCamera(delta * 0.5);
+      }
+    };
+    
+    // Add event listener for camera control events from mobile controls
+    window.addEventListener('camera-control', handleCameraControl);
+    
+    return () => {
+      window.removeEventListener('camera-control', handleCameraControl);
+    };
+  }, [panCamera, zoomCamera]);
+
   // Handle mouse interactions
   useEffect(() => {
     const canvas = canvasRef.current;

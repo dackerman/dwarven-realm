@@ -1,56 +1,35 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { useThree } from '@react-three/fiber';
-import * as THREE from 'three';
+import React, { useState, useEffect, useRef } from 'react';
+import { useGame } from '../../lib/stores/useGame';
+
+// We'll use custom events to communicate with the IsometricScene component
+const CAMERA_CONTROL_EVENT = 'camera-control';
+
+interface CameraControlEvent {
+  action: 'pan' | 'zoom';
+  deltaX?: number;
+  deltaY?: number;
+  delta?: number;
+}
 
 const MobileControls: React.FC = () => {
-  const { camera } = useThree();
   const [isVisible, setIsVisible] = useState(true);
+  const { settings } = useGame();
+  
+  // Helper function to dispatch camera control events
+  const emitCameraControl = (data: CameraControlEvent) => {
+    const event = new CustomEvent(CAMERA_CONTROL_EVENT, { detail: data });
+    window.dispatchEvent(event);
+    console.log('Mobile control event:', data);
+  };
   
   // Camera control functions
-  const panCamera = useCallback((deltaX: number, deltaY: number) => {
-    const speed = 0.5; // Increased for mobile
-    const dir = new THREE.Vector3();
-    const rightVector = new THREE.Vector3();
-    const upVector = new THREE.Vector3(0, 1, 0);
-    
-    // Get right and forward vectors from camera
-    camera.getWorldDirection(dir);
-    rightVector.crossVectors(upVector, dir).normalize();
-    
-    // Move camera position
-    camera.position.addScaledVector(rightVector, deltaX * speed);
-    
-    // For vertical movement, use a vector perpendicular to both
-    // the up vector and the right vector
-    const forwardVector = new THREE.Vector3();
-    forwardVector.crossVectors(rightVector, upVector);
-    camera.position.addScaledVector(forwardVector, deltaY * speed);
-    
-    // Update the target that the camera is looking at
-    const target = new THREE.Vector3();
-    target.copy(camera.position).add(dir);
-    camera.lookAt(target);
-    
-    console.log(`Camera panned: ${deltaX}, ${deltaY}`);
-  }, [camera]);
+  const panCamera = (deltaX: number, deltaY: number) => {
+    emitCameraControl({ action: 'pan', deltaX, deltaY });
+  };
   
-  const zoomCamera = useCallback((delta: number) => {
-    const speed = 0.5; // Increased for mobile
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    
-    // Prevent zooming too close to the ground
-    const futurePosition = camera.position.clone().addScaledVector(dir, delta * speed);
-    if (futurePosition.y > 2) { // Minimum height above ground
-      camera.position.addScaledVector(dir, delta * speed);
-      
-      // Look at the center point again
-      const target = new THREE.Vector3(0, 0, 0);
-      camera.lookAt(target);
-      
-      console.log(`Camera zoomed: ${delta}`);
-    }
-  }, [camera]);
+  const zoomCamera = (delta: number) => {
+    emitCameraControl({ action: 'zoom', delta });
+  };
   
   // Handle button clicks
   const handlePanUp = () => panCamera(0, 1);
