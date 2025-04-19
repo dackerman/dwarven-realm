@@ -79,6 +79,9 @@ export interface GameSettings {
   debugMode: boolean;
 }
 
+// Re-export GameState from shared schema for client use
+export { GameState } from "@shared/schema";
+
 export type OverlayType = "none" | "buildings" | "needs" | "tasks" | "happiness";
 
 export interface Point2D {

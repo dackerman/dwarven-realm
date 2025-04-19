@@ -99,6 +99,9 @@ const AIControls: React.FC = () => {
         const stoneResource = resources.find(r => r.type === 'stone' && !r.isBeingHarvested);
         if (stoneResource) {
           target = { x: stoneResource.x, y: stoneResource.y };
+          console.log(`Found stone resource at (${stoneResource.x}, ${stoneResource.y}) for ${dwarf.name} to mine`);
+        } else {
+          console.log(`No available stone resources found for ${dwarf.name} to mine`);
         }
         break;
         

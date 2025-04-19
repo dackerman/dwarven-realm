@@ -15,6 +15,8 @@ const DwarfMovement: React.FC = () => {
   useEffect(() => {
     if (phase !== 'playing') return;
     
+    console.log('DwarfMovement component active, checking for movement needs...');
+    
     const interval = setInterval(async () => {
       // Process each dwarf's movement
       for (const dwarf of dwarves) {
