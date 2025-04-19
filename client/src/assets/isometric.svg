@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Isometric Grid -->
+  <defs>
+    <pattern id="isometricGrid" width="40" height="20" patternUnits="userSpaceOnUse">
+      <path d="M0,0 L20,10 L40,0 L20,-10 Z" fill="none" stroke="#ccc" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  
+  <!-- Background with grid -->
+  <rect width="200" height="200" fill="#f0f0f0"/>
+  <rect width="200" height="200" fill="url(#isometricGrid)"/>
+  
+  <!-- Isometric Fortress Elements -->
+  <!-- Ground Base -->
+  <polygon points="100,100 40,70 100,40 160,70" fill="#8a6a3c" stroke="#735735" stroke-width="1"/>
+  
+  <!-- Stone Floor -->
+  <polygon points="100,100 60,80 100,60 140,80" fill="#aaa" stroke="#888" stroke-width="1"/>
+  
+  <!-- Wall Left -->
+  <polygon points="60,80 60,50 100,30 100,60" fill="#888" stroke="#666" stroke-width="1"/>
+  
+  <!-- Wall Right -->
+  <polygon points="100,60 100,30 140,50 140,80" fill="#777" stroke="#666" stroke-width="1"/>
+  
+  <!-- Door -->
+  <polygon points="95,60 95,40 105,40 105,60" fill="#a67c52" stroke="#8a6a3c" stroke-width="1"/>
+  
+  <!-- Dwarf 1 -->
+  <g transform="translate(80,70)">
+    <!-- Body -->
+    <polygon points="0,0 -5,-3 0,-6 5,-3" fill="#8b4513" stroke="#6a330f" stroke-width="1"/>
+    <!-- Head -->
+    <circle cx="0" cy="-8" r="3" fill="#d2b48c" stroke="#6a330f" stroke-width="0.8"/>
+    <!-- Beard -->
+    <path d="M-2,-7 Q0,-4 2,-7" stroke="#aaa" stroke-width="1.5" fill="none"/>
+  </g>
+  
+  <!-- Dwarf 2 -->
+  <g transform="translate(120,90)">
+    <!-- Body -->
+    <polygon points="0,0 -5,-3 0,-6 5,-3" fill="#556b2f" stroke="#3b4d20" stroke-width="1"/>
+    <!-- Head -->
+    <circle cx="0" cy="-8" r="3" fill="#d2b48c" stroke="#3b4d20" stroke-width="0.8"/>
+    <!-- Beard -->
+    <path d="M-2,-7 Q0,-4 2,-7" stroke="#aaa" stroke-width="1.5" fill="none"/>
+  </g>
+  
+  <!-- Resource: Stone -->
+  <g transform="translate(50,100)">
+    <polygon points="0,0 -5,-3 0,-6 5,-3" fill="#888" stroke="#666" stroke-width="1"/>
+  </g>
+  
+  <!-- Resource: Wood -->
+  <g transform="translate(150,90)">
+    <rect x="-2" y="-8" width="4" height="8" fill="#8b4513" stroke="#6a330f" stroke-width="1" transform="skewX(30)"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="100" y="180" font-family="sans-serif" font-size="12" text-anchor="middle" fill="#333">
+    Isometric Dwarf Fortress
+  </text>
+</svg>
