@@ -3,8 +3,7 @@ import { useAudio } from '../../lib/stores/useAudio';
 import { useDwarves } from '../../lib/stores/useDwarves';
 import { useBuilding } from '../../lib/stores/useBuilding';
 import { useGame } from '../../lib/stores/useGame';
-import { BuildingType, TaskType } from '@shared/schema';
-import BuildMenu from './BuildMenu';
+import { TaskType } from '@shared/schema';
 import TimeControl from './TimeControl';
 
 const GameUI: React.FC = () => {
@@ -47,39 +46,25 @@ const GameUI: React.FC = () => {
     setOverlay = () => {}
   } = useGame();
   
-  const [isBuildMenuOpen, setIsBuildMenuOpen] = useState(false);
   const [isGameMenuOpen, setIsGameMenuOpen] = useState(false);
-  
-  // Get build key state using keyboard controls hook
-  const controls = {
-    build: false,
-    pause: false,
-    cancel: false
-  };
   
   // Setup keyboard handling
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code === 'KeyB') {
-        setIsBuildMenuOpen(prev => !prev);
-      } else if (event.code === 'Space') {
+      if (event.code === 'Space') {
         if (phase === 'playing') {
           pause();
         } else if (phase === 'paused') {
           resume();
         }
       } else if (event.code === 'Escape') {
-        setIsBuildMenuOpen(false);
         setIsGameMenuOpen(false);
-        if (selectedBuildingType) {
-          selectBuildingType(null);
-        }
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase, pause, resume, selectedBuildingType, selectBuildingType]);
+  }, [phase, pause, resume]);
   
   // Start background music
   useEffect(() => {
@@ -107,11 +92,7 @@ const GameUI: React.FC = () => {
     playSuccess();
   };
   
-  // Toggle build menu
-  const handleToggleBuildMenu = () => {
-    setIsBuildMenuOpen(prev => !prev);
-    playSuccess();
-  };
+  // We've removed user-controlled building functionality
   
   // Toggle game menu
   const handleToggleGameMenu = () => {
@@ -164,19 +145,6 @@ const GameUI: React.FC = () => {
       
       {/* Bottom Left - Controls */}
       <div className="absolute bottom-4 left-4 flex flex-col space-y-2 pointer-events-auto">
-        {/* Build Button */}
-        <button 
-          className={`flex items-center space-x-2 bg-gray-800 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors ${isBuildMenuOpen ? 'ring-2 ring-yellow-400' : ''}`}
-          onClick={handleToggleBuildMenu}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="3" y1="9" x2="21" y2="9"></line>
-            <line x1="9" y1="21" x2="9" y2="9"></line>
-          </svg>
-          <span className="font-medium">Build (B)</span>
-        </button>
-        
         {/* Sound Button */}
         <button 
           className="flex items-center space-x-2 bg-gray-800 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors"
@@ -206,21 +174,9 @@ const GameUI: React.FC = () => {
             <line x1="4" y1="6" x2="20" y2="6"></line>
             <line x1="4" y1="18" x2="20" y2="18"></line>
           </svg>
-          <span className="font-medium">Menu</span>
+          <span className="font-medium">Settings</span>
         </button>
       </div>
-      
-      {/* Build Menu */}
-      {isBuildMenuOpen && (
-        <BuildMenu 
-          onClose={() => setIsBuildMenuOpen(false)} 
-          onSelect={(type) => {
-            selectBuildingType(type);
-            setIsBuildMenuOpen(false);
-          }}
-          selectedType={selectedBuildingType}
-        />
-      )}
       
       {/* Game Menu */}
       {isGameMenuOpen && (
@@ -382,62 +338,17 @@ const GameUI: React.FC = () => {
           </div>
           
           <div className="mt-3 pt-2 border-t border-gray-700">
-            <h4 className="text-sm font-medium mb-1">Assign Task:</h4>
-            <div className="grid grid-cols-2 gap-2">
-              <button 
-                className="bg-gray-700 hover:bg-gray-600 text-sm px-2 py-1 rounded"
-                onClick={() => {
-                  useDwarves.getState().assignTask(selectedDwarf.id, TaskType.Mining);
-                  playSuccess();
-                }}
-              >
-                Mining
-              </button>
-              <button 
-                className="bg-gray-700 hover:bg-gray-600 text-sm px-2 py-1 rounded"
-                onClick={() => {
-                  useDwarves.getState().assignTask(selectedDwarf.id, TaskType.Woodcutting);
-                  playSuccess();
-                }}
-              >
-                Woodcutting
-              </button>
-              <button 
-                className="bg-gray-700 hover:bg-gray-600 text-sm px-2 py-1 rounded"
-                onClick={() => {
-                  useDwarves.getState().assignTask(selectedDwarf.id, TaskType.Building);
-                  playSuccess();
-                }}
-              >
-                Building
-              </button>
-              <button 
-                className="bg-gray-700 hover:bg-gray-600 text-sm px-2 py-1 rounded"
-                onClick={() => {
-                  useDwarves.getState().assignTask(selectedDwarf.id, TaskType.Eating);
-                  playSuccess();
-                }}
-              >
-                Eat
-              </button>
-              <button 
-                className="bg-gray-700 hover:bg-gray-600 text-sm px-2 py-1 rounded"
-                onClick={() => {
-                  useDwarves.getState().assignTask(selectedDwarf.id, TaskType.Sleeping);
-                  playSuccess();
-                }}
-              >
-                Sleep
-              </button>
-              <button 
-                className="bg-gray-700 hover:bg-gray-600 text-sm px-2 py-1 rounded"
-                onClick={() => {
-                  useDwarves.getState().assignTask(selectedDwarf.id, TaskType.Idle);
-                  playSuccess();
-                }}
-              >
-                Idle
-              </button>
+            <h4 className="text-sm font-medium mb-1">Recent Activities:</h4>
+            <div className="text-sm text-gray-300 max-h-32 overflow-y-auto">
+              {selectedDwarf.memory && selectedDwarf.memory.length > 0 ? (
+                <ul className="space-y-1">
+                  {selectedDwarf.memory.slice(-5).map((memory, index) => (
+                    <li key={index} className="text-sm text-gray-300">• {memory}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-400 italic">No recent activities recorded.</p>
+              )}
             </div>
           </div>
         </div>
@@ -458,28 +369,7 @@ const GameUI: React.FC = () => {
         </div>
       )}
       
-      {/* Building Mode Indicator */}
-      {selectedBuildingType && (
-        <div className="absolute bottom-4 right-4 bg-yellow-600 text-white px-4 py-2 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-              <polyline points="2 17 12 22 22 17"></polyline>
-              <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
-            <span>Building: <span className="font-medium capitalize">{selectedBuildingType}</span></span>
-            <button 
-              className="ml-2 bg-yellow-700 hover:bg-yellow-800 p-1 rounded"
-              onClick={() => selectBuildingType(null)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* We've removed the Building Mode Indicator - dwarves make their own building decisions */}
     </div>
   );
 };
