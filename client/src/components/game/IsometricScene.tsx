@@ -51,6 +51,7 @@ const SceneSetup: React.FC = () => {
   
   // For camera rotation
   const cameraRotation = useRef(0);
+  const pendingRotation = useRef(0);
   
   // Handle mobile control events
   useEffect(() => {
@@ -76,29 +77,14 @@ const SceneSetup: React.FC = () => {
         zoomCamera(delta * 0.5);
       }
       else if (action === 'rotate' && angle !== undefined) {
-        // Handle camera rotation around y-axis
-        const { camera } = useThree.getState();
+        // For rotation, we'll simply store the angle change and apply it in the useFrame hook
+        // This way we don't need to access the camera directly here
         const rotationAmount = angle * 2; // Adjust sensitivity
         
-        // Update the reference value
-        cameraRotation.current += rotationAmount;
+        // Store the rotation request to be processed in the frame loop
+        pendingRotation.current += rotationAmount;
         
-        // Create a rotation matrix around Y axis
-        const rotationMatrix = new THREE.Matrix4().makeRotationY(rotationAmount);
-        
-        // Apply rotation to camera position (keep same distance from center)
-        const cameraPosition = new THREE.Vector3().copy(camera.position);
-        cameraPosition.applyMatrix4(rotationMatrix);
-        camera.position.copy(cameraPosition);
-        
-        // Rotate camera's up vector to keep orientation
-        const upVector = new THREE.Vector3(0, 1, 0);
-        camera.up.copy(upVector);
-        
-        // Make camera look at the center
-        camera.lookAt(0, 0, 0);
-        
-        console.log('Camera rotated by', angle, 'radians. Total rotation:', cameraRotation.current);
+        console.log('Rotation requested:', rotationAmount, 'radians. Total pending:', pendingRotation.current);
       }
     };
     
@@ -179,9 +165,42 @@ const SceneSetup: React.FC = () => {
     };
   }, [canvasRef, panCamera, zoomCamera, checkIntersection]);
   
-  // Game loop with keyboard controls
+  // Game loop with keyboard controls and rotation handling
   useFrame((state, delta) => {
     if (phase !== 'playing') return;
+    
+    // Handle any pending rotation
+    if (Math.abs(pendingRotation.current) > 0.001) {
+      const { camera } = state;
+      
+      // Extract a reasonable amount of rotation to apply this frame
+      // to make the rotation smooth
+      const rotationThisFrame = pendingRotation.current * 0.1;
+      pendingRotation.current -= rotationThisFrame;
+      
+      // Update our total rotation tracker
+      cameraRotation.current += rotationThisFrame;
+      
+      // Create rotation matrix for Y-axis rotation
+      const rotationMatrix = new THREE.Matrix4().makeRotationY(rotationThisFrame);
+      
+      // Apply to camera position
+      const cameraPosition = new THREE.Vector3().copy(camera.position);
+      cameraPosition.applyMatrix4(rotationMatrix);
+      camera.position.copy(cameraPosition);
+      
+      // Keep camera upright
+      camera.up.set(0, 1, 0);
+      
+      // Look at the center
+      camera.lookAt(0, 0, 0);
+      
+      if (Math.abs(pendingRotation.current) < 0.001) {
+        // Clean up any tiny remaining rotation to avoid floating point errors
+        pendingRotation.current = 0;
+        console.log('Rotation complete. Total camera rotation:', cameraRotation.current);
+      }
+    }
     
     // Process keyboard commands for camera movement
     const keyboard = state.gl.domElement.parentElement?.parentElement?.querySelector('div[data-key-controls]');
