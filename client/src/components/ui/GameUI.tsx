@@ -5,6 +5,7 @@ import { useBuilding } from '../../lib/stores/useBuilding';
 import { useGame } from '../../lib/stores/useGame';
 import { TaskType } from '@shared/schema';
 import TimeControl from './TimeControl';
+import ConversationDisplay from './ConversationDisplay';
 
 const GameUI: React.FC = () => {
   const { 
@@ -370,6 +371,9 @@ const GameUI: React.FC = () => {
       )}
       
       {/* We've removed the Building Mode Indicator - dwarves make their own building decisions */}
+      
+      {/* Conversation Display - only show if dialogues are enabled in settings */}
+      {settings.showDialogues && <ConversationDisplay maxMessages={10} />}
     </div>
   );
 };

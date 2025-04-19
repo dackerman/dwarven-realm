@@ -1,4 +1,5 @@
-import { ClientDwarf, AIMessage, TaskType, BuildingType, ResourceType } from '../types/game';
+import { ClientDwarf, AIMessage } from '../types/game';
+import { TaskType, BuildingType, ResourceType } from '@shared/schema';
 
 // Prepare system prompt for the AI dwarf
 export function createSystemPrompt(dwarf: ClientDwarf): string {
@@ -152,4 +153,67 @@ export function generateAIMessages(
   messages.push({ role: "user", content: userMessage });
   
   return messages;
+}
+
+// Generate autonomous decision message for AI
+export function createDecisionMessage(
+  dwarf: ClientDwarf,
+  worldState: {
+    resources: { type: ResourceType, quantity: number, position: { x: number, y: number } }[],
+    buildings: { type: BuildingType, completed: boolean, position: { x: number, y: number } }[],
+    otherDwarves: { id: number, name: string, task: string, position: { x: number, y: number } }[]
+  }
+): string {
+  // Create a detailed world state description
+  const resourceDesc = worldState.resources.length > 0 
+    ? `Available resources: ${worldState.resources.map(r => `${r.type} (${r.quantity})`).join(', ')}.` 
+    : 'No resources available.';
+  
+  const buildingDesc = worldState.buildings.length > 0
+    ? `Buildings: ${worldState.buildings.map(b => `${b.type} (${b.completed ? 'completed' : 'in progress'})`).join(', ')}.`
+    : 'No buildings constructed yet.';
+  
+  const otherDwarvesDesc = worldState.otherDwarves.length > 0
+    ? `Other dwarves: ${worldState.otherDwarves.map(d => `${d.name} (${d.task})`).join(', ')}.`
+    : 'No other dwarves nearby.';
+  
+  // Create urgency based on needs
+  const urgentNeeds = [];
+  
+  if (dwarf.hunger > 75) urgentNeeds.push('very hungry');
+  else if (dwarf.hunger > 50) urgentNeeds.push('hungry');
+  
+  if (dwarf.energy < 25) urgentNeeds.push('exhausted');
+  else if (dwarf.energy < 50) urgentNeeds.push('tired');
+  
+  if (dwarf.happiness < 25) urgentNeeds.push('very unhappy');
+  else if (dwarf.happiness < 50) urgentNeeds.push('unhappy');
+  
+  const needsDesc = urgentNeeds.length > 0
+    ? `You are feeling ${urgentNeeds.join(' and ')}.`
+    : 'You are feeling fine.';
+  
+  return `You need to decide what to do next based on your needs and the world state.
+
+${needsDesc}
+
+${resourceDesc}
+${buildingDesc}
+${otherDwarvesDesc}
+
+What will you decide to do next? Respond with the task you choose and a very brief reason why.
+Only choose from these tasks: mining, woodcutting, building, eating, sleeping, socializing, crafting, hauling, or idle.
+Keep your response brief and in character as a dwarf.`;
+}
+
+// Format AI decision for memory
+export function formatDecisionForMemory(
+  dwarf: ClientDwarf,
+  decision: string,
+  reason: string
+): string {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString();
+  
+  return `[${timeStr}] Decided to ${decision}${reason ? `: ${reason}` : ''}`;
 }
