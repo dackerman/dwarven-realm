@@ -11,7 +11,7 @@ export interface ClientDwarf extends Omit<Dwarf, 'conversation' | 'memory' | 'in
   dialogueVisible: boolean;
   currentDialogue?: string;
   animation: "idle" | "walking" | "working" | "talking" | "eating" | "sleeping";
-  direction: "north" | "south" | "east" | "west";
+  direction: Direction;
 }
 
 export interface ClientBuilding extends Omit<Building, 'materials' | 'occupants'> {

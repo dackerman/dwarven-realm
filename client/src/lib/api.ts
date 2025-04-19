@@ -99,6 +99,9 @@ export async function generateWorld(width: number, height: number, seed?: number
 
 // Path Finding
 export async function findPath(start: Point2D, end: Point2D): Promise<Point2D[]> {
+  console.log(`API: Finding path from (${start.x}, ${start.y}) to (${end.x}, ${end.y})`);
   const response = await apiRequest('POST', '/api/pathfinding', { start, end });
-  return response.json();
+  const path = await response.json();
+  console.log(`API: Path found with ${path.length} steps`);
+  return path;
 }

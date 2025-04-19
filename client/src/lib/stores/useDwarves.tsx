@@ -81,6 +81,8 @@ export const useDwarves = create<DwarvesState>()(
       // Calculate the direction of movement
       const direction = getDirection(dwarf.x, dwarf.y, nextPosition.x, nextPosition.y) as Direction;
       
+      console.log(`Dwarf store: Moving ${dwarf.name} (id:${id}) from (${dwarf.x}, ${dwarf.y}) to (${nextPosition.x}, ${nextPosition.y}), direction: ${direction}, remaining path: ${path.length - 1} steps`);
+      
       // Update the dwarf with the new position, remaining path, and direction
       return {
         dwarves: state.dwarves.map(d => 
@@ -106,6 +108,8 @@ export const useDwarves = create<DwarvesState>()(
       // Find the dwarf
       const dwarf = state.dwarves.find(d => d.id === id);
       if (!dwarf) return state;
+      
+      console.log(`Dwarf store: Assigning task ${task} to ${dwarf.name} (id:${id})${target ? ` with target (${target.x}, ${target.y})` : ''}`);
       
       return {
         dwarves: state.dwarves.map(d => 
