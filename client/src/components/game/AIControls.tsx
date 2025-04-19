@@ -172,6 +172,7 @@ const AIControls: React.FC = () => {
     }
     
     // Assign the task with target
+    console.log(`AI decision for ${dwarf.name}: Task=${chosenTask}, Target=${JSON.stringify(target)}`);
     useDwarves.getState().assignTask(dwarf.id, chosenTask, target);
     
     // Update memory

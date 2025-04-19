@@ -14,6 +14,7 @@ import Dwarf from './Dwarf';
 import Building from './Building';
 import ResourceNode from './ResourceNode';
 import AIControls from './AIControls';
+import DwarfMovement from './DwarfMovement';
 
 // Define key mappings for movement
 const keyMap = [
@@ -178,6 +179,9 @@ const SceneSetup: React.FC = () => {
       
       {/* AI control system - handles dwarf AI behaviors */}
       <AIControls />
+      
+      {/* Movement system - handles dwarf pathfinding and movement */}
+      <DwarfMovement />
     </>
   );
 };
