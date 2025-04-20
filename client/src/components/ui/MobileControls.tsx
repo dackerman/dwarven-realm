@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // We'll use custom events to communicate with the IsometricScene component
 const CAMERA_CONTROL_EVENT = 'camera-control';
@@ -24,12 +24,21 @@ interface CameraControlEvent {
 
 const MobileControls: React.FC = () => {
   const touchAreaRef = useRef<HTMLDivElement>(null);
-  
+  const [debugInfo, setDebugInfo] = useState<string>('Touch controls ready. Waiting for input...');
+  const [isVisible, setIsVisible] = useState<boolean>(true);
+
   // Helper function to dispatch camera control events
   const emitCameraControl = (data: CameraControlEvent) => {
-    const event = new CustomEvent(CAMERA_CONTROL_EVENT, { detail: data });
-    window.dispatchEvent(event);
-    console.log('Touch control event:', data);
+    try {
+      // Make sure the event name exactly matches what's in IsometricScene.tsx
+      const event = new CustomEvent('camera-control', { detail: data });
+      window.dispatchEvent(event);
+      console.log('Touch control event emitted:', data);
+      setDebugInfo(`Last event: ${data.action} - ${JSON.stringify(data)}`);
+    } catch (error) {
+      console.error('Error emitting camera control event:', error);
+      setDebugInfo(`Error: ${error}`);
+    }
   };
   
   useEffect(() => {
@@ -47,7 +56,14 @@ const MobileControls: React.FC = () => {
     
     // Get touch element
     const touchArea = touchAreaRef.current;
-    if (!touchArea) return;
+    if (!touchArea) {
+      console.error('Touch area ref is null');
+      setDebugInfo('Error: Touch area not initialized');
+      return;
+    }
+    
+    console.log('Mobile controls initialized with element:', touchArea);
+    setDebugInfo('Mobile controls initialized');
     
     // Calculate distance between two touch points
     const getDistance = (touch1: Touch, touch2: Touch): number => {
@@ -66,6 +82,9 @@ const MobileControls: React.FC = () => {
     
     // Handle touch start
     const handleTouchStart = (e: TouchEvent) => {
+      console.log('Touch start detected', e.touches.length, 'touches');
+      setDebugInfo(`Touch start: ${e.touches.length} touches`);
+      
       touchState.touchCount = e.touches.length;
       
       if (touchState.touchCount === 1) {
@@ -75,6 +94,7 @@ const MobileControls: React.FC = () => {
         touchState.isRotating = false;
         touchState.lastX = e.touches[0].clientX;
         touchState.lastY = e.touches[0].clientY;
+        console.log('Single touch at', touchState.lastX, touchState.lastY);
       } 
       else if (touchState.touchCount === 2) {
         // Two touches for pinch zoom and rotation
@@ -83,6 +103,7 @@ const MobileControls: React.FC = () => {
         touchState.isRotating = true;
         touchState.lastDist = getDistance(e.touches[0], e.touches[1]);
         touchState.lastAngle = getAngle(e.touches[0], e.touches[1]);
+        console.log('Two touches, initial distance:', touchState.lastDist);
       }
     };
     
@@ -96,9 +117,11 @@ const MobileControls: React.FC = () => {
         const deltaY = e.touches[0].clientY - touchState.lastY;
         
         // Speed factor - adjust as needed to make it feel more responsive
-        const speedFactor = 0.05;
+        const speedFactor = 0.15; // Increased from 0.05
         
-        if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) { // Decreased threshold for better responsiveness
+          console.log('Pan: deltaX =', deltaX, 'deltaY =', deltaY);
+          
           emitCameraControl({
             action: 'pan',
             deltaX: deltaX * speedFactor,
@@ -118,10 +141,10 @@ const MobileControls: React.FC = () => {
           const deltaDist = currentDist - touchState.lastDist;
           
           // Adjust zoom speed - increase for better responsiveness
-          const zoomSpeed = 0.1;
+          const zoomSpeed = 0.2; // Increased from 0.1
           
           // Make zoom threshold smaller so it's more responsive
-          if (Math.abs(deltaDist) > 1) {
+          if (Math.abs(deltaDist) > 0.5) { // Decreased threshold for better responsiveness
             // Pinch in (fingers getting closer) = zoom out = positive delta
             // Pinch out (fingers getting further) = zoom in = negative delta
             // In our system, negative delta zooms in, positive delta zooms out
@@ -144,7 +167,9 @@ const MobileControls: React.FC = () => {
           const deltaAngle = currentAngle - touchState.lastAngle;
           
           // Only emit if there's significant rotation to avoid jitter
-          if (Math.abs(deltaAngle) > 0.05) {
+          if (Math.abs(deltaAngle) > 0.03) { // Decreased threshold for better responsiveness
+            console.log('Rotation detected, angle:', deltaAngle);
+            
             emitCameraControl({
               action: 'rotate',
               angle: deltaAngle
@@ -158,6 +183,9 @@ const MobileControls: React.FC = () => {
     
     // Handle touch end
     const handleTouchEnd = (e: TouchEvent) => {
+      console.log('Touch end, remaining touches:', e.touches.length);
+      setDebugInfo(`Touch end: ${e.touches.length} touches remaining`);
+      
       touchState.touchCount = e.touches.length;
       
       if (touchState.touchCount === 0) {
@@ -197,8 +225,13 @@ const MobileControls: React.FC = () => {
       className="absolute inset-0 touch-none z-10 pointer-events-auto"
       style={{ touchAction: 'none' }}
     >
+      {/* Debug panel - Added to help troubleshoot */}
+      <div className="absolute top-4 left-4 p-2 rounded-lg bg-red-600/80 text-white text-xs pointer-events-none">
+        Debug: {debugInfo}
+      </div>
+      
       {/* Information panel in the bottom corner to indicate touch controls are available */}
-      <div className="absolute bottom-4 right-4 p-2 rounded-lg bg-gray-900/70 text-white text-sm pointer-events-none">
+      <div className="absolute bottom-4 right-4 p-2 rounded-lg bg-gray-900/80 text-white text-sm pointer-events-none">
         <div className="flex items-center space-x-2 mb-1">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>

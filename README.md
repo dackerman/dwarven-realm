@@ -76,8 +76,8 @@ The decision-making process uses AI to generate natural responses, creating uniq
 
 ## 📷 Dwarven Imagery
 
-![Dwarven Mining](https://picsum.photos/400/300)
-*Urist McMiner extracting precious stone from the depths*
+![Dwarven Mobile Interface](attached_assets/Screenshot_20250420_150128_Replit.jpg)
+*A glimpse of dwarven conversations through a magical scrying device (mobile view)*
 
 ![Dwarven Dining Hall](https://picsum.photos/400/301)
 *The communal dining hall, where tales are told and ale is consumed*

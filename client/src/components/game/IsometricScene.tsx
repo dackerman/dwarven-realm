@@ -70,18 +70,23 @@ const SceneSetup: React.FC = () => {
       
       if (action === 'pan' && deltaX !== undefined && deltaY !== undefined) {
         // Make panning more responsive on mobile
-        panCamera(-deltaX * 0.5, -deltaY * 0.5);
+        console.log('Executing camera pan with values:', -deltaX, -deltaY);
+        
+        // Increased the multiplier for more responsive panning
+        panCamera(-deltaX * 3.0, -deltaY * 3.0);
       } 
       else if (action === 'zoom' && delta !== undefined) {
         // For zoom events, we'll handle them through the standard zoomCamera function
         // but with increased sensitivity
         console.log('Processing zoom:', delta);
-        zoomCamera(delta * 5); // Multiply by 5 for more noticeable zoom on mobile
+        
+        // Increased multiplier for more noticeable zoom on mobile
+        zoomCamera(delta * 10); 
       }
       else if (action === 'rotate' && angle !== undefined) {
         // For rotation, we'll simply store the angle change and apply it in the useFrame hook
         // This way we don't need to access the camera directly here
-        const rotationAmount = angle * 2; // Adjust sensitivity
+        const rotationAmount = angle * 3.0; // Increased multiplier for more responsive rotation
         
         // Store the rotation request to be processed in the frame loop
         pendingRotation.current += rotationAmount;
@@ -90,11 +95,20 @@ const SceneSetup: React.FC = () => {
       }
     };
     
-    // Add event listener for camera control events from mobile controls
-    window.addEventListener('camera-control', handleCameraControl);
+    try {
+      // Add event listener for camera control events from mobile controls
+      window.addEventListener('camera-control', handleCameraControl);
+      console.log('Camera control event listener registered successfully');
+    } catch (error) {
+      console.error('Failed to register camera control event listener:', error);
+    }
     
     return () => {
-      window.removeEventListener('camera-control', handleCameraControl);
+      try {
+        window.removeEventListener('camera-control', handleCameraControl);
+      } catch (error) {
+        console.error('Failed to remove camera control event listener:', error);
+      }
     };
   }, [panCamera, zoomCamera]);
 
