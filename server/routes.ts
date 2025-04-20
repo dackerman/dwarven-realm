@@ -5,6 +5,8 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { TaskType, BuildingType, ResourceType } from "../shared/schema";
 import { logger } from "./logger";
+import path from "path";
+import fs from "fs";
 
 // Setup OpenAI client
 const openai = new OpenAI({
@@ -343,6 +345,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // LOGGING ENDPOINTS
+  
+  // Get available log sessions
+  app.get("/api/logs/sessions", async (req, res, next) => {
+    try {
+      // Get all session directories in logs folder
+      const sessionsPath = path.join(process.cwd(), 'logs');
+      
+      // Check if logs directory exists
+      if (!fs.existsSync(sessionsPath)) {
+        return res.json({ sessions: [] });
+      }
+      
+      // Get all directories in logs folder
+      const sessionDirs = fs.readdirSync(sessionsPath).filter((dir: string) => {
+        const stats = fs.statSync(path.join(sessionsPath, dir));
+        return stats.isDirectory() && dir.startsWith('session-');
+      });
+      
+      // Sort by most recent first
+      sessionDirs.sort((a: string, b: string) => {
+        const statsA = fs.statSync(path.join(sessionsPath, a));
+        const statsB = fs.statSync(path.join(sessionsPath, b));
+        return statsB.mtime.getTime() - statsA.mtime.getTime();
+      });
+      
+      res.json({ sessions: sessionDirs });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get dwarf events log
+  app.get("/api/logs/events", async (req, res, next) => {
+    try {
+      const { session } = req.query;
+      
+      if (!session) {
+        return res.status(400).json({ message: "Session parameter is required" });
+      }
+      
+      // Validate session name format to prevent directory traversal
+      if (!/^session-[\d-T]+$/.test(session as string)) {
+        return res.status(400).json({ message: "Invalid session format" });
+      }
+      
+      const logFilePath = path.join(process.cwd(), 'logs', session as string, 'dwarf-events.log');
+      
+      // Check if file exists
+      if (!fs.existsSync(logFilePath)) {
+        return res.json({ logs: [] });
+      }
+      
+      // Read log file
+      const logContent = fs.readFileSync(logFilePath, 'utf8');
+      
+      // Split log content into lines, remove empty lines
+      const logLines = logContent.split('\n').filter((line: string) => line.trim().length > 0);
+      
+      res.json({ logs: logLines });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get dwarf dialogues log
+  app.get("/api/logs/dialogues", async (req, res, next) => {
+    try {
+      const { session } = req.query;
+      
+      if (!session) {
+        return res.status(400).json({ message: "Session parameter is required" });
+      }
+      
+      // Validate session name format to prevent directory traversal
+      if (!/^session-[\d-T]+$/.test(session as string)) {
+        return res.status(400).json({ message: "Invalid session format" });
+      }
+      
+      const logFilePath = path.join(process.cwd(), 'logs', session as string, 'dwarf-dialogues.log');
+      
+      // Check if file exists
+      if (!fs.existsSync(logFilePath)) {
+        return res.json({ logs: [] });
+      }
+      
+      // Read log file
+      const logContent = fs.readFileSync(logFilePath, 'utf8');
+      
+      // Split log content into lines, remove empty lines
+      const logLines = logContent.split('\n').filter((line: string) => line.trim().length > 0);
+      
+      res.json({ logs: logLines });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get OpenAI API log
+  app.get("/api/logs/api", async (req, res, next) => {
+    try {
+      const { session } = req.query;
+      
+      if (!session) {
+        return res.status(400).json({ message: "Session parameter is required" });
+      }
+      
+      // Validate session name format to prevent directory traversal
+      if (!/^session-[\d-T]+$/.test(session as string)) {
+        return res.status(400).json({ message: "Invalid session format" });
+      }
+      
+      const logFilePath = path.join(process.cwd(), 'logs', session as string, 'openai-api.log');
+      
+      // Check if file exists
+      if (!fs.existsSync(logFilePath)) {
+        return res.json({ logs: [] });
+      }
+      
+      // Read log file
+      const logContent = fs.readFileSync(logFilePath, 'utf8');
+      
+      // Split log content into lines, remove empty lines
+      const logLines = logContent.split('\n').filter(line => line.trim().length > 0);
+      
+      res.json({ logs: logLines });
+    } catch (error) {
+      next(error);
+    }
+  });
   
   // Log dwarf event
   app.post("/api/log/event", async (req, res, next) => {
