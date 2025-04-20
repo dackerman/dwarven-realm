@@ -14,6 +14,7 @@ import {
   formatTaskForMemory,
   generateAIMessages
 } from '../aiHelpers';
+import { logDwarfEvent, logDwarfDialogue } from '../loggerClient';
 
 interface DwarvesState {
   dwarves: ClientDwarf[];
@@ -112,6 +113,15 @@ export const useDwarves = create<DwarvesState>()(
       
       console.log(`Dwarf store: Assigning task ${task} to ${dwarf.name} (id:${id})${target ? ` with target (${target.x}, ${target.y})` : ''}`);
       
+      // Log the task assignment
+      logDwarfEvent(
+        id,
+        dwarf.name,
+        "TASK_ASSIGNED",
+        `Assigned task ${task}${target ? ` at location (${target.x}, ${target.y})` : ''}`,
+        { x: dwarf.x, y: dwarf.y }
+      );
+      
       return {
         dwarves: state.dwarves.map(d => 
           d.id === id ? { 
@@ -135,6 +145,15 @@ export const useDwarves = create<DwarvesState>()(
       const memory = [...dwarf.memory];
       if (dwarf.currentTask) {
         memory.push(formatTaskForMemory(dwarf, dwarf.currentTask as TaskType));
+        
+        // Log the task completion
+        logDwarfEvent(
+          id,
+          dwarf.name,
+          "TASK_COMPLETED",
+          `Completed task ${dwarf.currentTask}`,
+          { x: dwarf.x, y: dwarf.y }
+        );
       }
       
       return {
@@ -213,6 +232,14 @@ export const useDwarves = create<DwarvesState>()(
         
         // Update dwarf with conversation
         const dialogueText = response.response;
+        
+        // Log the conversation
+        logDwarfDialogue(
+          dwarfId,
+          dwarf.name,
+          dialogueText,
+          `Conversation with ${targetDwarf.name}`
+        );
         
         // Add to dwarf memory
         const updatedMemory = [...dwarf.memory];

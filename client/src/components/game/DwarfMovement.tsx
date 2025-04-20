@@ -3,6 +3,7 @@ import { useDwarves } from '../../lib/stores/useDwarves';
 import { useGame } from '../../lib/stores/useGame';
 import { findPath } from '../../lib/api';
 import { Point2D } from '../../types/game';
+import { logDwarfEvent, logDwarfDialogue } from '../../lib/loggerClient';
 
 const MOVEMENT_CHECK_INTERVAL = 200; // Check every 200ms for smoother movement
 
@@ -28,6 +29,16 @@ const DwarfMovement: React.FC = () => {
             const nextPath = [...dwarf.path]; // Copy to avoid mutation
             const nextPosition = nextPath[0]; // Get the next position
             console.log(`Moving ${dwarf.name} one step along path from (${dwarf.x},${dwarf.y}) to (${nextPosition.x},${nextPosition.y})`);
+            
+            // Log the movement event
+            logDwarfEvent(
+              dwarf.id,
+              dwarf.name,
+              "MOVEMENT",
+              `Moving from (${dwarf.x}, ${dwarf.y}) to (${nextPosition.x}, ${nextPosition.y})`,
+              { x: dwarf.x, y: dwarf.y }
+            );
+            
             useDwarves.getState().moveDwarf(dwarf.id, nextPath);
             continue;
           }
@@ -44,6 +55,16 @@ const DwarfMovement: React.FC = () => {
             // If we found a path, set it on the dwarf
             if (path && path.length > 0) {
               console.log(`Path found for ${dwarf.name} with ${path.length} steps`);
+              
+              // Log the path finding event
+              logDwarfEvent(
+                dwarf.id,
+                dwarf.name,
+                "PATH_FOUND",
+                `Found path to target (${dwarf.target.x}, ${dwarf.target.y}) with ${path.length} steps`,
+                { x: dwarf.x, y: dwarf.y }
+              );
+              
               useDwarves.getState().updateDwarf(dwarf.id, { path, animation: 'walking' });
               
               // Start moving one step at a time
@@ -53,6 +74,15 @@ const DwarfMovement: React.FC = () => {
               useDwarves.getState().moveDwarf(dwarf.id, nextPath);
             } else {
               console.log(`No path found for ${dwarf.name} to target (${dwarf.target.x}, ${dwarf.target.y})`);
+              
+              // Log the failed pathfinding
+              logDwarfEvent(
+                dwarf.id,
+                dwarf.name,
+                "NO_PATH_FOUND",
+                `Unable to find path to target (${dwarf.target.x}, ${dwarf.target.y})`,
+                { x: dwarf.x, y: dwarf.y }
+              );
               
               // If we couldn't find a path, clear the target
               useDwarves.getState().updateDwarf(dwarf.id, { 
@@ -83,6 +113,15 @@ const DwarfMovement: React.FC = () => {
         dwarf.y === dwarf.target.y
       ) {
         console.log(`${dwarf.name} has reached target (${dwarf.target.x}, ${dwarf.target.y})`);
+        
+        // Log the target reached event
+        logDwarfEvent(
+          dwarf.id,
+          dwarf.name,
+          "TARGET_REACHED",
+          `Reached target position (${dwarf.target.x}, ${dwarf.target.y}) for task ${dwarf.currentTask}`,
+          { x: dwarf.x, y: dwarf.y }
+        );
         
         // Clear the target since we've reached it
         useDwarves.getState().updateDwarf(dwarf.id, { 
