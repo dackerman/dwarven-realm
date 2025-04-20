@@ -116,10 +116,10 @@ const MobileControls: React.FC = () => {
         const deltaX = e.touches[0].clientX - touchState.lastX;
         const deltaY = e.touches[0].clientY - touchState.lastY;
         
-        // Speed factor - adjust as needed to make it feel more responsive
-        const speedFactor = 0.15; // Increased from 0.05
+        // Speed factor - significantly increased for direct camera manipulation
+        const speedFactor = 1.0; // Increased for direct camera control
         
-        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) { // Decreased threshold for better responsiveness
+        if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) { // Lower threshold for better responsiveness
           console.log('Pan: deltaX =', deltaX, 'deltaY =', deltaY);
           
           emitCameraControl({
@@ -140,11 +140,11 @@ const MobileControls: React.FC = () => {
           const currentDist = getDistance(e.touches[0], e.touches[1]);
           const deltaDist = currentDist - touchState.lastDist;
           
-          // Adjust zoom speed - increase for better responsiveness
-          const zoomSpeed = 0.2; // Increased from 0.1
+          // Adjust zoom speed - increase for direct camera manipulation
+          const zoomSpeed = 1.0; // Increased for direct camera control
           
           // Make zoom threshold smaller so it's more responsive
-          if (Math.abs(deltaDist) > 0.5) { // Decreased threshold for better responsiveness
+          if (Math.abs(deltaDist) > 0.1) { // Lower threshold for better responsiveness
             // Pinch in (fingers getting closer) = zoom out = positive delta
             // Pinch out (fingers getting further) = zoom in = negative delta
             // In our system, negative delta zooms in, positive delta zooms out
@@ -167,7 +167,7 @@ const MobileControls: React.FC = () => {
           const deltaAngle = currentAngle - touchState.lastAngle;
           
           // Only emit if there's significant rotation to avoid jitter
-          if (Math.abs(deltaAngle) > 0.03) { // Decreased threshold for better responsiveness
+          if (Math.abs(deltaAngle) > 0.01) { // Lower threshold for better responsiveness
             console.log('Rotation detected, angle:', deltaAngle);
             
             emitCameraControl({

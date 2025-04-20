@@ -55,6 +55,8 @@ const SceneSetup: React.FC = () => {
   
   // Handle mobile control events
   useEffect(() => {
+    const { camera } = useThree();
+    
     const handleCameraControl = (e: Event) => {
       const customEvent = e as CustomEvent<{
         action: 'pan' | 'zoom' | 'rotate', 
@@ -69,29 +71,79 @@ const SceneSetup: React.FC = () => {
       console.log('Camera control event received:', customEvent.detail);
       
       if (action === 'pan' && deltaX !== undefined && deltaY !== undefined) {
-        // Make panning more responsive on mobile
+        // Make panning more responsive on mobile - use direct camera manipulation
         console.log('Executing camera pan with values:', -deltaX, -deltaY);
         
-        // Increased the multiplier for more responsive panning
-        panCamera(-deltaX * 3.0, -deltaY * 3.0);
+        // Get camera direction vectors
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        
+        // Right vector (perpendicular to up and forward)
+        const upVector = new THREE.Vector3(0, 1, 0);
+        const rightVector = new THREE.Vector3();
+        rightVector.crossVectors(upVector, dir).normalize();
+        
+        // Forward vector (perpendicular to up and right)
+        const forwardVector = new THREE.Vector3();
+        forwardVector.crossVectors(rightVector, upVector).normalize();
+        
+        // Apply movement with increased sensitivity for mobile
+        const mobileSpeed = 2.0; // Much higher than the desktop speed for better response
+        
+        camera.position.addScaledVector(rightVector, -deltaX * mobileSpeed);
+        camera.position.addScaledVector(forwardVector, -deltaY * mobileSpeed);
+        
+        // Log what's happening to make sure our code is working
+        console.log('Camera moved to:', camera.position.x, camera.position.y, camera.position.z);
+        
+        // Ensure camera keeps looking in the same direction
+        const target = new THREE.Vector3();
+        target.copy(camera.position).add(dir);
+        camera.lookAt(target);
       } 
       else if (action === 'zoom' && delta !== undefined) {
-        // For zoom events, we'll handle them through the standard zoomCamera function
-        // but with increased sensitivity
+        // For zoom events, we'll handle them through direct camera manipulation
         console.log('Processing zoom:', delta);
         
-        // Increased multiplier for more noticeable zoom on mobile
-        zoomCamera(delta * 10); 
+        // Get current forward direction
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        
+        // Apply zoom with increased sensitivity for mobile
+        const mobileZoomSpeed = 2.0; // Increased for more responsive zooming
+        const futurePosition = camera.position.clone().addScaledVector(dir, delta * mobileZoomSpeed);
+        
+        // Prevent zooming too close to the ground
+        if (futurePosition.y > 2) {
+          camera.position.addScaledVector(dir, delta * mobileZoomSpeed);
+          console.log('Camera zoomed to:', camera.position.x, camera.position.y, camera.position.z);
+        }
       }
       else if (action === 'rotate' && angle !== undefined) {
-        // For rotation, we'll simply store the angle change and apply it in the useFrame hook
-        // This way we don't need to access the camera directly here
-        const rotationAmount = angle * 3.0; // Increased multiplier for more responsive rotation
+        // For rotation, apply immediately rather than using the frame loop
+        console.log('Executing camera rotation with angle:', angle);
         
-        // Store the rotation request to be processed in the frame loop
-        pendingRotation.current += rotationAmount;
+        // Apply rotation with increased sensitivity for mobile
+        const mobileRotationSpeed = 5.0; // Increased for better responsiveness
+        const rotationAmount = angle * mobileRotationSpeed;
         
-        console.log('Rotation requested:', rotationAmount, 'radians. Total pending:', pendingRotation.current);
+        // Create rotation matrix for Y-axis rotation
+        const rotationMatrix = new THREE.Matrix4().makeRotationY(rotationAmount);
+        
+        // Apply to camera position (rotate around Y axis)
+        const cameraPosition = new THREE.Vector3().copy(camera.position);
+        cameraPosition.applyMatrix4(rotationMatrix);
+        camera.position.copy(cameraPosition);
+        
+        // Keep camera upright
+        camera.up.set(0, 1, 0);
+        
+        // Look at the center point (0,0,0)
+        camera.lookAt(0, 0, 0);
+        
+        // Update our rotation tracker
+        cameraRotation.current += rotationAmount;
+        console.log('Rotation applied. Total camera rotation:', cameraRotation.current);
       }
     };
     
@@ -110,7 +162,7 @@ const SceneSetup: React.FC = () => {
         console.error('Failed to remove camera control event listener:', error);
       }
     };
-  }, [panCamera, zoomCamera]);
+  }, []);
 
   // Handle mouse interactions
   useEffect(() => {
