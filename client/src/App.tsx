@@ -1,12 +1,9 @@
-import { useEffect, useState, Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import { KeyboardControls } from "@react-three/drei";
-import * as THREE from "three";
+import { useEffect, useState } from "react";
 import { useAudio } from "./lib/stores/useAudio";
 import { useGame } from "./lib/stores/useGame";
 import { useDwarves } from "./lib/stores/useDwarves";
 import { useBuilding } from "./lib/stores/useBuilding";
-import IsometricScene from "./components/game/IsometricScene";
+import TopDownScene from "./components/game/TopDownScene";
 import GameUI from "./components/ui/GameUI";
 import "@fontsource/inter";
 
@@ -225,20 +222,9 @@ function App() {
   return (
     <div className="h-screen w-screen overflow-hidden">
       <div className="relative w-full h-full">
-        {/* Game Canvas */}
-        <div className="absolute inset-0">
-          <Canvas
-            shadows
-            gl={{ antialias: true, alpha: false }}
-            camera={{ position: [10, 10, 10], fov: 45 }}
-            style={{ background: '#87CEEB' }}
-          >
-            <KeyboardControls map={controls}>
-              <Suspense fallback={null}>
-                <IsometricScene />
-              </Suspense>
-            </KeyboardControls>
-          </Canvas>
+        {/* Game Canvas - Now using 2D Top-down view */}
+        <div className="absolute inset-0 bg-green-100">
+          <TopDownScene />
         </div>
         
         {/* UI Overlay */}
