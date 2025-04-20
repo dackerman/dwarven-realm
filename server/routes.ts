@@ -467,7 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logContent = fs.readFileSync(logFilePath, 'utf8');
       
       // Split log content into lines, remove empty lines
-      const logLines = logContent.split('\n').filter(line => line.trim().length > 0);
+      const logLines = logContent.split('\n').filter((line: string) => line.trim().length > 0);
       
       res.json({ logs: logLines });
     } catch (error) {

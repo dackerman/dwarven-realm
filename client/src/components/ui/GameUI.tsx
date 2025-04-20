@@ -8,6 +8,7 @@ import TimeControl from './TimeControl';
 import ConversationDisplay from './ConversationDisplay';
 import MobileControls from './MobileControls';
 import { useIsMobile } from '../../hooks/use-is-mobile';
+import LogViewer from './LogViewer';
 
 const GameUI: React.FC = () => {
   const { 
@@ -50,6 +51,7 @@ const GameUI: React.FC = () => {
   } = useGame();
   
   const [isGameMenuOpen, setIsGameMenuOpen] = useState(false);
+  const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   
   // Setup keyboard handling
   useEffect(() => {
@@ -178,6 +180,21 @@ const GameUI: React.FC = () => {
             <line x1="4" y1="18" x2="20" y2="18"></line>
           </svg>
           <span className="font-medium">Settings</span>
+        </button>
+        
+        {/* Logs Button */}
+        <button 
+          className={`flex items-center space-x-2 bg-gray-800 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors ${isLogViewerOpen ? 'ring-2 ring-yellow-400' : ''}`}
+          onClick={() => setIsLogViewerOpen(true)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            <line x1="8" y1="7" x2="15" y2="7"></line>
+            <line x1="8" y1="12" x2="17" y2="12"></line>
+            <line x1="8" y1="17" x2="12" y2="17"></line>
+          </svg>
+          <span className="font-medium">Logs</span>
         </button>
       </div>
       
@@ -379,6 +396,11 @@ const GameUI: React.FC = () => {
       
       {/* Mobile Controls - only show on mobile devices */}
       {useIsMobile() && <MobileControls />}
+      
+      {/* Log Viewer */}
+      {isLogViewerOpen && (
+        <LogViewer onClose={() => setIsLogViewerOpen(false)} />
+      )}
     </div>
   );
 };
