@@ -4,7 +4,7 @@ import { useGame } from '../../lib/stores/useGame';
 import { findPath } from '../../lib/api';
 import { Point2D } from '../../types/game';
 
-const MOVEMENT_CHECK_INTERVAL = 500; // Check every 500ms
+const MOVEMENT_CHECK_INTERVAL = 200; // Check every 200ms for smoother movement
 
 const DwarfMovement: React.FC = () => {
   const dwarves = useDwarves(state => state.dwarves);
@@ -23,8 +23,12 @@ const DwarfMovement: React.FC = () => {
         try {
           // Check if the dwarf has an active path
           if (dwarf.path && dwarf.path.length > 0) {
-            // Move the dwarf along its path
-            useDwarves.getState().moveDwarf(dwarf.id, dwarf.path);
+            // Move the dwarf along its path - only move one step at a time
+            // This creates visual movement as the dwarf progresses along the path
+            const nextPath = [...dwarf.path]; // Copy to avoid mutation
+            const nextPosition = nextPath[0]; // Get the next position
+            console.log(`Moving ${dwarf.name} one step along path from (${dwarf.x},${dwarf.y}) to (${nextPosition.x},${nextPosition.y})`);
+            useDwarves.getState().moveDwarf(dwarf.id, nextPath);
             continue;
           }
           
@@ -42,8 +46,11 @@ const DwarfMovement: React.FC = () => {
               console.log(`Path found for ${dwarf.name} with ${path.length} steps`);
               useDwarves.getState().updateDwarf(dwarf.id, { path, animation: 'walking' });
               
-              // Immediately start moving
-              useDwarves.getState().moveDwarf(dwarf.id, path);
+              // Start moving one step at a time
+              const nextPath = [...path]; // Copy to avoid mutation
+              const nextPosition = nextPath[0]; // Get the next position
+              console.log(`Initial move for ${dwarf.name} from (${dwarf.x},${dwarf.y}) to (${nextPosition.x},${nextPosition.y})`);
+              useDwarves.getState().moveDwarf(dwarf.id, nextPath);
             } else {
               console.log(`No path found for ${dwarf.name} to target (${dwarf.target.x}, ${dwarf.target.y})`);
               

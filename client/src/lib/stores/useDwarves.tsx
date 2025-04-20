@@ -90,6 +90,7 @@ export const useDwarves = create<DwarvesState>()(
             ...d, 
             x: nextPosition.x, 
             y: nextPosition.y, 
+            // Only remove the first step from the path
             path: path.length > 1 ? path.slice(1) : undefined,
             direction,
             animation: "walking"
