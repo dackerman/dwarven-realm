@@ -77,7 +77,7 @@ export class Logger {
         `[${timestamp}] API REQUEST`,
         `Model: ${model}`,
         'Messages:',
-        ...messages.map(m => `  ${m.role}: ${m.content.substring(0, 200)}${m.content.length > 200 ? '...' : ''}`),
+        ...messages.map(m => `  ${m.role}: ${m.content}`),
         response ? `Response: ${response}` : 'No response received',
         '-------------------------------------------\n'
       ].join('\n');

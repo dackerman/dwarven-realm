@@ -586,11 +586,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ response: mockResponse });
       }
       
-      // Log OpenAI API request to console
-      console.log("OpenAI API Request:");
-      console.log("Model: gpt-4o-mini");
-      console.log("Messages:", JSON.stringify(messages.map(m => ({ role: m.role, content: m.content })), null, 2));
-      
       // Call OpenAI API
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -600,9 +595,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const aiResponse = completion.choices[0]?.message?.content || "No response from AI";
-      
-      // Log OpenAI API response to console
-      console.log("OpenAI API Response:", aiResponse);
       
       // Log API request and response to file
       logger.logApiRequest("gpt-4o-mini", messages, aiResponse);

@@ -72,7 +72,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ onClose }) => {
           // Extract timestamp if it exists in the format [timestamp]
           const timestampMatch = log.match(/\[(.*?)\]/);
           
-          if (timestampMatch) {
+          if (timestampMatch && timestampMatch.length > 1) {
             return {
               timestamp: timestampMatch[1],
               content: log.replace(timestampMatch[0], '').trim()
