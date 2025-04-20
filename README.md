@@ -68,16 +68,24 @@ The decision-making process uses AI to generate natural responses, creating uniq
 
 ### 🖱️ Controls
 
+#### Desktop Controls
 - **WASD/Arrow Keys**: Pan camera
 - **+/-**: Zoom in/out
 - **Click on Dwarf**: Select and view dwarf details
 - **Space**: Pause/resume simulation
 - **1-3**: Adjust game speed
 
+#### Mobile Controls
+- **One Finger Drag**: Pan camera
+- **Pinch Gesture**: Zoom in/out
+- **Two Finger Twist**: Rotate camera
+- **Tap on Dwarf**: Select dwarf
+- **UI Buttons**: Access game speed and other options
+
 ## 📷 Dwarven Imagery
 
 ![Dwarven Mobile Interface](attached_assets/Screenshot_20250420_150128_Replit.jpg)
-*A glimpse of dwarven conversations through a magical scrying device (mobile view)*
+*Autonomous dwarves discussing mining plans - captured on the mystical mobile scrying device (showing improved touch controls)*
 
 ![Dwarven Dining Hall](https://picsum.photos/400/301)
 *The communal dining hall, where tales are told and ale is consumed*
