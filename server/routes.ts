@@ -342,6 +342,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // LOGGING ENDPOINTS
+  
+  // Log dwarf event
+  app.post("/api/log/event", async (req, res, next) => {
+    try {
+      const { dwarfId, dwarfName, eventType, details, location } = req.body;
+      
+      // Validate required fields
+      if (!dwarfId || !dwarfName || !eventType || !details) {
+        return res.status(400).json({ message: "Missing required logging fields" });
+      }
+      
+      // Log the event
+      logger.logDwarfEvent(
+        dwarfId,
+        dwarfName,
+        eventType,
+        details,
+        location
+      );
+      
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Log dwarf dialogue
+  app.post("/api/log/dialogue", async (req, res, next) => {
+    try {
+      const { dwarfId, dwarfName, dialogue, context } = req.body;
+      
+      // Validate required fields
+      if (!dwarfId || !dwarfName || !dialogue) {
+        return res.status(400).json({ message: "Missing required logging fields" });
+      }
+      
+      // Log the dialogue
+      logger.logDwarfDialogue(
+        dwarfId,
+        dwarfName,
+        dialogue,
+        context
+      );
+      
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // WORLD GENERATION ENDPOINT
   
   // Generate world
