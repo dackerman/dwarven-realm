@@ -3,7 +3,7 @@ import { useAudio } from "./lib/stores/useAudio";
 import { useGame } from "./lib/stores/useGame";
 import { useDwarves } from "./lib/stores/useDwarves";
 import { useBuilding } from "./lib/stores/useBuilding";
-import TopDownScene from "./components/game/TopDownScene";
+import TopDownScene2D from "./components/game/TopDownScene2D";
 import GameUI from "./components/ui/GameUI";
 import "@fontsource/inter";
 
@@ -224,7 +224,7 @@ function App() {
       <div className="relative w-full h-full">
         {/* Game Canvas - Now using 2D Top-down view */}
         <div className="absolute inset-0 bg-green-100">
-          <TopDownScene />
+          <TopDownScene2D />
         </div>
         
         {/* UI Overlay */}
