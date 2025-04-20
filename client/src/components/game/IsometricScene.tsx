@@ -86,26 +86,37 @@ const SceneSetup: React.FC = () => {
       
       // Handle panning (one-finger drag)
       if (action === 'pan' && deltaX !== undefined && deltaY !== undefined) {
-        // Use much larger values for mobile
-        const MOBILE_PAN_SENSITIVITY = 8.0;
+        // Dramatically increase sensitivity for mobile - values are tiny with touch events
+        const MOBILE_PAN_SENSITIVITY = 30.0;
         
-        // We need to compute the right vector for moving left/right
+        // Create vectors for moving the camera in the viewing plane
+        // First, get the camera's right vector (for left/right movement)
         const right = new THREE.Vector3(1, 0, 0);
         right.applyQuaternion(camera.quaternion);
+        // Keep right vector on the xz plane for consistent panning
+        right.y = 0;
         right.normalize();
         
-        // And the forward vector for moving in/out
+        // And the forward vector (for in/out movement)
         const forward = new THREE.Vector3(0, 0, 1);
         forward.applyQuaternion(camera.quaternion);
         forward.y = 0; // Keep movement on the xz plane
         forward.normalize();
         
+        // Scale the movement based on the current camera distance from center
+        // This makes panning more natural at different zoom levels
+        const distanceScale = camera.position.length() / 15;
+        const scaledSensitivity = MOBILE_PAN_SENSITIVITY * Math.max(1, distanceScale);
+        
+        console.log(`Using scaled sensitivity: ${scaledSensitivity.toFixed(2)} (distance=${distanceScale.toFixed(2)})`);
+        
         // Move the camera directly by updating its position
+        // Note: Reversed deltaX and deltaY for more intuitive movement
         camera.position.add(
-          right.multiplyScalar(-deltaX * MOBILE_PAN_SENSITIVITY)
+          right.multiplyScalar(-deltaX * scaledSensitivity)
         );
         camera.position.add(
-          forward.multiplyScalar(-deltaY * MOBILE_PAN_SENSITIVITY)
+          forward.multiplyScalar(-deltaY * scaledSensitivity)
         );
         
         // Make sure the camera still looks at the center
@@ -123,13 +134,22 @@ const SceneSetup: React.FC = () => {
       } 
       // Handle zooming (pinch gesture)
       else if (action === 'zoom' && delta !== undefined) {
-        const MOBILE_ZOOM_SENSITIVITY = 8.0;
+        // Increase sensitivity for mobile - pinch gesture values are very small
+        const MOBILE_ZOOM_SENSITIVITY = 25.0;
         
         // Calculate direction vector from camera to (0,0,0)
         const direction = new THREE.Vector3(0, 0, 0).sub(camera.position).normalize();
         
+        // Scale zoom sensitivity based on current camera distance
+        // Makes zooming feel more consistent at different distances
+        const distance = camera.position.length();
+        const scaledSensitivity = MOBILE_ZOOM_SENSITIVITY * Math.max(0.5, distance / 15);
+        
+        // Log the sensitivity scaling
+        console.log(`Zoom with delta=${delta.toFixed(4)}, scaled sensitivity=${scaledSensitivity.toFixed(2)}`);
+        
         // Move camera along this vector (negative delta = zoom in toward center)
-        const moveAmount = delta * MOBILE_ZOOM_SENSITIVITY;
+        const moveAmount = delta * scaledSensitivity;
         
         // Calculate new position
         const newPosition = camera.position.clone().add(
@@ -144,7 +164,8 @@ const SceneSetup: React.FC = () => {
           console.log('Camera zoomed to:', 
             camera.position.x.toFixed(2), 
             camera.position.y.toFixed(2), 
-            camera.position.z.toFixed(2)
+            camera.position.z.toFixed(2),
+            `(distance: ${newPosition.length().toFixed(2)})`
           );
           
           // Make sure we're still looking at the center
@@ -156,10 +177,13 @@ const SceneSetup: React.FC = () => {
       }
       // Handle rotation (two-finger twist)
       else if (action === 'rotate' && angle !== undefined) {
-        const MOBILE_ROTATION_SENSITIVITY = 10.0;
+        // Dramatically increase rotation sensitivity for mobile - two-finger rotation values are tiny
+        const MOBILE_ROTATION_SENSITIVITY = 30.0;
         
         // Calculate the rotation amount
         const rotationAmount = angle * MOBILE_ROTATION_SENSITIVITY;
+        
+        console.log(`Rotating camera with angle=${angle.toFixed(6)}, rotationAmount=${rotationAmount.toFixed(4)}`);
         
         // Create a pivot point at the origin (0,0,0)
         const pivotPoint = new THREE.Vector3(0, 0, 0);
@@ -189,7 +213,8 @@ const SceneSetup: React.FC = () => {
         console.log('Camera rotated, new position:', 
           camera.position.x.toFixed(2), 
           camera.position.y.toFixed(2), 
-          camera.position.z.toFixed(2)
+          camera.position.z.toFixed(2),
+          `(total rotation: ${cameraRotation.current.toFixed(4)})`
         );
         
         // Force update
