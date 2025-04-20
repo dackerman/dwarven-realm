@@ -13,10 +13,12 @@ function pickRandom<T>(array: T[]): T | undefined {
 }
 
 const AI_DECISION_INTERVAL_MS = 10000; // 10 seconds
+const RANDOM_CONVERSATION_INTERVAL_MS = 15000; // 15 seconds
 const DIALOGUE_VISIBLE_DURATION_MS = 7000; // 7 seconds
 const CRITICAL_HUNGER_THRESHOLD = 70;
 const CRITICAL_ENERGY_THRESHOLD = 30;
 const CRITICAL_HAPPINESS_THRESHOLD = 30;
+const SOCIAL_INTERACTION_CHANCE = 0.3; // 30% chance for a random conversation
 
 const AIControls: React.FC = () => {
   const dwarves = useDwarves(state => state.dwarves);

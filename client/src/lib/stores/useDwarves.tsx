@@ -51,6 +51,9 @@ interface DwarvesState {
   getDwarfById: (id: number) => ClientDwarf | undefined;
   getDwarfByPosition: (x: number, y: number) => ClientDwarf | undefined;
   getDwarvesInRange: (position: Point2D, range: number) => ClientDwarf[];
+  
+  // Social interactions
+  initiateRandomConversations: () => void;
 }
 
 export const useDwarves = create<DwarvesState>()(
@@ -315,6 +318,45 @@ export const useDwarves = create<DwarvesState>()(
         const distance = Math.abs(dwarf.x - position.x) + Math.abs(dwarf.y - position.y);
         return distance <= range;
       });
+    },
+    
+    // Initiate random conversations between nearby dwarves
+    initiateRandomConversations: () => {
+      const allDwarves = get().dwarves;
+      
+      // Don't do anything if we have fewer than 2 dwarves
+      if (allDwarves.length < 2) return;
+      
+      // Choose a random initiator dwarf
+      const initiatorIndex = Math.floor(Math.random() * allDwarves.length);
+      const initiator = allDwarves[initiatorIndex];
+      
+      // Don't start a conversation if the dwarf is busy with certain tasks
+      if ([TaskType.Sleeping, TaskType.Mining, TaskType.Woodcutting].includes(initiator.state as TaskType)) return;
+      
+      // Find nearby dwarves (Manhattan distance <= 3)
+      const nearbyDwarves = get().getDwarvesInRange({ x: initiator.x, y: initiator.y }, 3)
+        .filter(d => d.id !== initiator.id && d.state !== TaskType.Sleeping);
+      
+      // If we found at least one nearby dwarf, start a conversation
+      if (nearbyDwarves.length > 0) {
+        // Choose a random dwarf to talk to
+        const targetIndex = Math.floor(Math.random() * nearbyDwarves.length);
+        const targetDwarf = nearbyDwarves[targetIndex];
+        
+        // Start the conversation
+        get().assignTask(initiator.id, TaskType.Socializing);
+        get().startConversation(initiator.id, targetDwarf.id);
+        
+        // Log the conversation initiation
+        logDwarfEvent(
+          initiator.id,
+          initiator.name,
+          "CONVERSATION_STARTED",
+          `Started conversation with ${targetDwarf.name}`,
+          { x: initiator.x, y: initiator.y }
+        );
+      }
     }
   }))
 );
