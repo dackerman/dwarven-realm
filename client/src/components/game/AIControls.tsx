@@ -313,6 +313,24 @@ const AIControls: React.FC = () => {
     return () => clearInterval(timer);
   }, [dwarves, phase, speed, lastUpdateTime, getAIDecision, checkCriticalNeeds]);
   
+  // Random social interactions
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    
+    // Scale interval by game speed
+    const interval = RANDOM_CONVERSATION_INTERVAL_MS / speed;
+    
+    const socialTimer = setInterval(() => {
+      // Only trigger conversations sometimes (based on chance)
+      if (Math.random() < SOCIAL_INTERACTION_CHANCE) {
+        console.log("Initiating random conversation between dwarves");
+        useDwarves.getState().initiateRandomConversations();
+      }
+    }, interval);
+    
+    return () => clearInterval(socialTimer);
+  }, [phase, speed]);
+  
   // This component doesn't render anything
   return null;
 };
