@@ -220,7 +220,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ onClose }) => {
             </div>
           ) : (
             <div className="space-y-2">
-              {logs.map((log, index) => (
+              {logs.reverse().map((log, index) => (
                 <div key={index} className="bg-gray-900 p-3 rounded">
                   {log.timestamp && (
                     <div className="text-xs text-gray-500 mb-1">
