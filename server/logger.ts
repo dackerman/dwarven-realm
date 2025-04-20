@@ -39,6 +39,9 @@ export class Logger {
         fs.mkdirSync(this.baseLogDir, { recursive: true });
       }
       
+      // Clean up old log sessions - keep only the two most recent
+      this.cleanupOldSessions();
+      
       // Create session log directory
       fs.mkdirSync(this.sessionLogDir, { recursive: true });
       
@@ -52,6 +55,61 @@ export class Logger {
     } catch (error) {
       console.error('Error initializing logger:', error);
     }
+  }
+  
+  /**
+   * Clean up old log sessions, keeping only the 2 most recent (before current)
+   */
+  private cleanupOldSessions(): void {
+    try {
+      // Skip if base log directory doesn't exist
+      if (!fs.existsSync(this.baseLogDir)) {
+        return;
+      }
+      
+      // Get all session directories
+      const sessionDirs = fs.readdirSync(this.baseLogDir)
+        .filter(dir => dir.startsWith('session-') && dir !== path.basename(this.sessionLogDir))
+        .map(dir => ({
+          name: dir,
+          path: path.join(this.baseLogDir, dir),
+          mtime: fs.statSync(path.join(this.baseLogDir, dir)).mtime.getTime()
+        }))
+        .sort((a, b) => b.mtime - a.mtime); // Sort newest first
+      
+      // Delete all but the 2 most recent
+      if (sessionDirs.length > 2) {
+        const sessionsToDelete = sessionDirs.slice(2);
+        sessionsToDelete.forEach(session => {
+          this.deleteDirectory(session.path);
+        });
+      }
+    } catch (error) {
+      console.error('Error cleaning up old log sessions:', error);
+    }
+  }
+  
+  /**
+   * Recursively delete a directory and its contents
+   */
+  private deleteDirectory(dirPath: string): void {
+    if (!fs.existsSync(dirPath)) {
+      return;
+    }
+    
+    fs.readdirSync(dirPath).forEach(file => {
+      const curPath = path.join(dirPath, file);
+      if (fs.lstatSync(curPath).isDirectory()) {
+        // Recursive delete subdirectory
+        this.deleteDirectory(curPath);
+      } else {
+        // Delete file
+        fs.unlinkSync(curPath);
+      }
+    });
+    
+    // Delete the now-empty directory
+    fs.rmdirSync(dirPath);
   }
 
   /**
