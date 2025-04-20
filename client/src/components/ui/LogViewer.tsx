@@ -70,48 +70,32 @@ const LogViewer: React.FC<LogViewerProps> = ({ onClose }) => {
         if (logType === 'api') {
           // For API logs, we need special handling to group requests together
           const parsedLogs: LogEntry[] = [];
-          let currentRequestTimestamp = '';
-          let currentRequestContent: string[] = [];
           
-          data.logs.forEach((log: string) => {
-            // Check if this is a header line (contains "Request & Response")
-            if (log.includes("=== OpenAI API Request & Response Log ===")) {
-              // Skip the header
-              return;
-            }
+          // Skip header line and join all logs into a single string
+          const logsContent = data.logs.filter(log => !log.includes("=== OpenAI API Request & Response Log ===")).join("\n");
+          
+          // Split by "API REQUEST" marker which indicates the start of a new request
+          const requests = logsContent.split("API REQUEST");
+          
+          // Process each request (skip the first element if it's empty)
+          requests.forEach(request => {
+            if (!request.trim()) return;
             
             // Extract timestamp if it exists in the format [timestamp]
-            const timestampMatch = log.match(/\[(.*?)\]/);
+            const timestampMatch = request.match(/\[(.*?)\]/);
+            let timestamp = '';
+            let content = request;
             
             if (timestampMatch && timestampMatch.length > 1) {
-              // This is the start of a new API request
-              
-              // If we have a previous request collected, add it to the logs
-              if (currentRequestContent.length > 0) {
-                parsedLogs.push({
-                  timestamp: currentRequestTimestamp,
-                  content: currentRequestContent.join('\n')
-                });
-                currentRequestContent = [];
-              }
-              
-              // Start a new request
-              currentRequestTimestamp = timestampMatch[1];
-              const content = log.replace(timestampMatch[0], '').trim();
-              currentRequestContent.push(content);
-            } else if (currentRequestContent.length > 0) {
-              // Add to the current request
-              currentRequestContent.push(log);
+              timestamp = timestampMatch[1];
+              content = request.trim();
             }
-          });
-          
-          // Don't forget to add the last request
-          if (currentRequestContent.length > 0) {
+            
             parsedLogs.push({
-              timestamp: currentRequestTimestamp,
-              content: currentRequestContent.join('\n')
+              timestamp,
+              content
             });
-          }
+          });
           
           setLogs(parsedLogs);
         } else {
