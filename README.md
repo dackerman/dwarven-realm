@@ -1,6 +1,6 @@
 # 🏰 Dwarven Fortress Simulation 🏰
 
-![Dwarven Fortress Banner](https://picsum.photos/800/200)
+![Dwarven Fortress Banner](https://i.imgur.com/1vKl3Gl.png)
 
 *Scribed in the ancient halls of Mount CodeRock by the master craftsdwarves of the Digital Deep*
 
