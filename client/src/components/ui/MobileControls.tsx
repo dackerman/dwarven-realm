@@ -116,16 +116,18 @@ const MobileControls: React.FC = () => {
         const deltaX = e.touches[0].clientX - touchState.lastX;
         const deltaY = e.touches[0].clientY - touchState.lastY;
         
-        // Speed factor - significantly increased for direct camera manipulation
-        const speedFactor = 1.0; // Increased for direct camera control
+        // Only send raw touch events - we'll handle scaling in the camera component
+        // Don't apply a scaling factor here as we'll do that in IsometricScene
+        const RAW_TOUCH_THRESHOLD = 0.2; // Very small threshold to catch all movements
         
-        if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) { // Lower threshold for better responsiveness
+        if (Math.abs(deltaX) > RAW_TOUCH_THRESHOLD || Math.abs(deltaY) > RAW_TOUCH_THRESHOLD) {
           console.log('Pan: deltaX =', deltaX, 'deltaY =', deltaY);
           
+          // Send raw delta values scaled by small factor to avoid tiny movements
           emitCameraControl({
             action: 'pan',
-            deltaX: deltaX * speedFactor,
-            deltaY: deltaY * speedFactor
+            deltaX: deltaX * 0.1, // Reduce raw value to avoid excessively large movements
+            deltaY: deltaY * 0.1  // The camera handler will multiply by a larger factor
           });
           
           touchState.lastX = e.touches[0].clientX;
@@ -140,21 +142,20 @@ const MobileControls: React.FC = () => {
           const currentDist = getDistance(e.touches[0], e.touches[1]);
           const deltaDist = currentDist - touchState.lastDist;
           
-          // Adjust zoom speed - increase for direct camera manipulation
-          const zoomSpeed = 1.0; // Increased for direct camera control
+          // Lower threshold to catch more pinch events
+          const PINCH_THRESHOLD = 0.1;
           
-          // Make zoom threshold smaller so it's more responsive
-          if (Math.abs(deltaDist) > 0.1) { // Lower threshold for better responsiveness
-            // Pinch in (fingers getting closer) = zoom out = positive delta
-            // Pinch out (fingers getting further) = zoom in = negative delta
-            // In our system, negative delta zooms in, positive delta zooms out
-            // So we negate the deltaDist for natural feel
+          if (Math.abs(deltaDist) > PINCH_THRESHOLD) {
+            // Normalize the delta to avoid excessive zoom speeds with very small values
+            const normalizedDelta = deltaDist * 0.01;
             
-            console.log(`Pinch detected: ${deltaDist > 0 ? 'out (zoom in)' : 'in (zoom out)'}, delta: ${deltaDist}`);
+            console.log(`Pinch: ${deltaDist > 0 ? 'out (zoom in)' : 'in (zoom out)'}, delta: ${normalizedDelta.toFixed(4)}`);
             
+            // Send the normalized value - our camera handler will apply the appropriate scaling
             emitCameraControl({
               action: 'zoom',
-              delta: -deltaDist * zoomSpeed
+              // Negate to match the expected zoom direction
+              delta: -normalizedDelta
             });
             
             touchState.lastDist = currentDist;
@@ -166,10 +167,13 @@ const MobileControls: React.FC = () => {
           const currentAngle = getAngle(e.touches[0], e.touches[1]);
           const deltaAngle = currentAngle - touchState.lastAngle;
           
-          // Only emit if there's significant rotation to avoid jitter
-          if (Math.abs(deltaAngle) > 0.01) { // Lower threshold for better responsiveness
-            console.log('Rotation detected, angle:', deltaAngle);
+          // Lower threshold for more responsive rotation
+          const ROTATION_THRESHOLD = 0.001;
+          
+          if (Math.abs(deltaAngle) > ROTATION_THRESHOLD) {
+            console.log('Rotate: angle delta =', deltaAngle.toFixed(4));
             
+            // Just send the raw angle - scaling happens in camera handler
             emitCameraControl({
               action: 'rotate',
               angle: deltaAngle

@@ -55,8 +55,20 @@ const SceneSetup: React.FC = () => {
   
   // Handle mobile control events
   useEffect(() => {
-    const { camera } = useThree();
+    // Get the global Three.js camera from R3F to work with it directly
+    const { camera, controls } = useThree();
     
+    // Store the original camera position and target for resetting if needed
+    const originalPosition = new THREE.Vector3().copy(camera.position);
+    
+    // Update camera function - this forces Three.js to refresh the camera view
+    const updateCamera = () => {
+      // Force a re-render with this camera
+      camera.updateProjectionMatrix();
+      camera.updateMatrixWorld();
+    };
+    
+    // Handle all camera control events coming from MobileControls component
     const handleCameraControl = (e: Event) => {
       const customEvent = e as CustomEvent<{
         action: 'pan' | 'zoom' | 'rotate', 
@@ -66,101 +78,132 @@ const SceneSetup: React.FC = () => {
         angle?: number
       }>;
       
+      // Extract event details
       const { action, deltaX, deltaY, delta, angle } = customEvent.detail;
       
-      console.log('Camera control event received:', customEvent.detail);
+      // Log the event for debugging
+      console.log('Mobile camera control:', action, customEvent.detail);
       
+      // Handle panning (one-finger drag)
       if (action === 'pan' && deltaX !== undefined && deltaY !== undefined) {
-        // Make panning more responsive on mobile - use direct camera manipulation
-        console.log('Executing camera pan with values:', -deltaX, -deltaY);
+        // Use much larger values for mobile
+        const MOBILE_PAN_SENSITIVITY = 8.0;
         
-        // Get camera direction vectors
-        const dir = new THREE.Vector3();
-        camera.getWorldDirection(dir);
+        // We need to compute the right vector for moving left/right
+        const right = new THREE.Vector3(1, 0, 0);
+        right.applyQuaternion(camera.quaternion);
+        right.normalize();
         
-        // Right vector (perpendicular to up and forward)
-        const upVector = new THREE.Vector3(0, 1, 0);
-        const rightVector = new THREE.Vector3();
-        rightVector.crossVectors(upVector, dir).normalize();
+        // And the forward vector for moving in/out
+        const forward = new THREE.Vector3(0, 0, 1);
+        forward.applyQuaternion(camera.quaternion);
+        forward.y = 0; // Keep movement on the xz plane
+        forward.normalize();
         
-        // Forward vector (perpendicular to up and right)
-        const forwardVector = new THREE.Vector3();
-        forwardVector.crossVectors(rightVector, upVector).normalize();
+        // Move the camera directly by updating its position
+        camera.position.add(
+          right.multiplyScalar(-deltaX * MOBILE_PAN_SENSITIVITY)
+        );
+        camera.position.add(
+          forward.multiplyScalar(-deltaY * MOBILE_PAN_SENSITIVITY)
+        );
         
-        // Apply movement with increased sensitivity for mobile
-        const mobileSpeed = 2.0; // Much higher than the desktop speed for better response
+        // Make sure the camera still looks at the center
+        camera.lookAt(0, 0, 0);
         
-        camera.position.addScaledVector(rightVector, -deltaX * mobileSpeed);
-        camera.position.addScaledVector(forwardVector, -deltaY * mobileSpeed);
+        // Log the new position
+        console.log('Camera moved to:', 
+          camera.position.x.toFixed(2), 
+          camera.position.y.toFixed(2), 
+          camera.position.z.toFixed(2)
+        );
         
-        // Log what's happening to make sure our code is working
-        console.log('Camera moved to:', camera.position.x, camera.position.y, camera.position.z);
-        
-        // Ensure camera keeps looking in the same direction
-        const target = new THREE.Vector3();
-        target.copy(camera.position).add(dir);
-        camera.lookAt(target);
+        // Force update
+        updateCamera();
       } 
+      // Handle zooming (pinch gesture)
       else if (action === 'zoom' && delta !== undefined) {
-        // For zoom events, we'll handle them through direct camera manipulation
-        console.log('Processing zoom:', delta);
+        const MOBILE_ZOOM_SENSITIVITY = 8.0;
         
-        // Get current forward direction
-        const dir = new THREE.Vector3();
-        camera.getWorldDirection(dir);
+        // Calculate direction vector from camera to (0,0,0)
+        const direction = new THREE.Vector3(0, 0, 0).sub(camera.position).normalize();
         
-        // Apply zoom with increased sensitivity for mobile
-        const mobileZoomSpeed = 2.0; // Increased for more responsive zooming
-        const futurePosition = camera.position.clone().addScaledVector(dir, delta * mobileZoomSpeed);
+        // Move camera along this vector (negative delta = zoom in toward center)
+        const moveAmount = delta * MOBILE_ZOOM_SENSITIVITY;
         
-        // Prevent zooming too close to the ground
-        if (futurePosition.y > 2) {
-          camera.position.addScaledVector(dir, delta * mobileZoomSpeed);
-          console.log('Camera zoomed to:', camera.position.x, camera.position.y, camera.position.z);
+        // Calculate new position
+        const newPosition = camera.position.clone().add(
+          direction.multiplyScalar(moveAmount)
+        );
+        
+        // Only allow zoom if we're not too close to ground or too far away
+        if (newPosition.length() > 5 && newPosition.length() < 50) {
+          camera.position.copy(newPosition);
+          
+          // Log what happened
+          console.log('Camera zoomed to:', 
+            camera.position.x.toFixed(2), 
+            camera.position.y.toFixed(2), 
+            camera.position.z.toFixed(2)
+          );
+          
+          // Make sure we're still looking at the center
+          camera.lookAt(0, 0, 0);
+          
+          // Force update
+          updateCamera();
         }
       }
+      // Handle rotation (two-finger twist)
       else if (action === 'rotate' && angle !== undefined) {
-        // For rotation, apply immediately rather than using the frame loop
-        console.log('Executing camera rotation with angle:', angle);
+        const MOBILE_ROTATION_SENSITIVITY = 10.0;
         
-        // Apply rotation with increased sensitivity for mobile
-        const mobileRotationSpeed = 5.0; // Increased for better responsiveness
-        const rotationAmount = angle * mobileRotationSpeed;
+        // Calculate the rotation amount
+        const rotationAmount = angle * MOBILE_ROTATION_SENSITIVITY;
         
-        // Create rotation matrix for Y-axis rotation
+        // Create a pivot point at the origin (0,0,0)
+        const pivotPoint = new THREE.Vector3(0, 0, 0);
+        
+        // Calculate the vector from pivot to camera
+        const cameraToPivot = camera.position.clone().sub(pivotPoint);
+        
+        // Create a rotation matrix around the Y axis
         const rotationMatrix = new THREE.Matrix4().makeRotationY(rotationAmount);
         
-        // Apply to camera position (rotate around Y axis)
-        const cameraPosition = new THREE.Vector3().copy(camera.position);
-        cameraPosition.applyMatrix4(rotationMatrix);
-        camera.position.copy(cameraPosition);
+        // Apply the rotation to the camera-to-pivot vector
+        cameraToPivot.applyMatrix4(rotationMatrix);
+        
+        // Set the new camera position
+        camera.position.copy(pivotPoint).add(cameraToPivot);
+        
+        // Make sure camera is still looking at the center
+        camera.lookAt(pivotPoint);
         
         // Keep camera upright
         camera.up.set(0, 1, 0);
         
-        // Look at the center point (0,0,0)
-        camera.lookAt(0, 0, 0);
-        
         // Update our rotation tracker
         cameraRotation.current += rotationAmount;
-        console.log('Rotation applied. Total camera rotation:', cameraRotation.current);
+        
+        // Log what happened
+        console.log('Camera rotated, new position:', 
+          camera.position.x.toFixed(2), 
+          camera.position.y.toFixed(2), 
+          camera.position.z.toFixed(2)
+        );
+        
+        // Force update
+        updateCamera();
       }
     };
     
-    try {
-      // Add event listener for camera control events from mobile controls
-      window.addEventListener('camera-control', handleCameraControl);
-      console.log('Camera control event listener registered successfully');
-    } catch (error) {
-      console.error('Failed to register camera control event listener:', error);
-    }
+    // Register the event listener
+    window.addEventListener('camera-control', handleCameraControl);
+    console.log('Mobile camera controls activated');
     
+    // Clean up on component unmount
     return () => {
-      try {
-        window.removeEventListener('camera-control', handleCameraControl);
-      } catch (error) {
-        console.error('Failed to remove camera control event listener:', error);
-      }
+      window.removeEventListener('camera-control', handleCameraControl);
     };
   }, []);
 
