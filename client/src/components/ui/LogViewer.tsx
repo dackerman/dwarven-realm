@@ -96,9 +96,20 @@ const LogViewer: React.FC<LogViewerProps> = ({ onClose }) => {
     fetchLogs();
   }, [logType, currentSession]);
 
+  // This handler prevents events from propagating to the game underneath
+  const stopPropagation = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4 pointer-events-auto"
+      onClick={stopPropagation}
+    >
+      <div 
+        className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col"
+        onClick={stopPropagation}
+      >
         <div className="p-4 border-b border-gray-700 flex justify-between items-center">
           <h2 className="text-xl font-bold text-white">Dwarf Fortress Logs</h2>
           <button 
@@ -112,19 +123,28 @@ const LogViewer: React.FC<LogViewerProps> = ({ onClose }) => {
         <div className="flex border-b border-gray-700">
           <button 
             className={`px-4 py-2 ${logType === 'events' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`}
-            onClick={() => setLogType('events')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLogType('events');
+            }}
           >
             Dwarf Events
           </button>
           <button 
             className={`px-4 py-2 ${logType === 'dialogues' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`}
-            onClick={() => setLogType('dialogues')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLogType('dialogues');
+            }}
           >
             Dwarf Dialogues
           </button>
           <button 
             className={`px-4 py-2 ${logType === 'api' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700 hover:text-white'}`}
-            onClick={() => setLogType('api')}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLogType('api');
+            }}
           >
             API Requests
           </button>
@@ -133,8 +153,12 @@ const LogViewer: React.FC<LogViewerProps> = ({ onClose }) => {
         <div className="p-4 border-b border-gray-700">
           <select 
             value={currentSession} 
-            onChange={(e) => setCurrentSession(e.target.value)}
+            onChange={(e) => {
+              e.stopPropagation();
+              setCurrentSession(e.target.value);
+            }}
             className="bg-gray-700 text-white p-2 rounded w-full"
+            onClick={stopPropagation}
           >
             {sessions.map((session) => (
               <option key={session} value={session}>
@@ -144,7 +168,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ onClose }) => {
           </select>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4" onClick={stopPropagation}>
           {loading ? (
             <div className="flex justify-center items-center h-full">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
