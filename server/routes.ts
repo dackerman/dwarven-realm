@@ -29,6 +29,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok" });
   });
   
+  // UI Test Routes - for debugging mobile UI
+  app.get("/mobile-test", (_req, res) => {
+    res.sendFile(path.join(process.cwd(), "tests", "run-ui-test.html"));
+  });
+  
+  // Serve the test files statically
+  app.use("/tests", (req, res, next) => {
+    // Security check - only allow .js and .html files
+    if (!req.path.endsWith('.js') && !req.path.endsWith('.html')) {
+      return res.status(403).send('Forbidden');
+    }
+    next();
+  }, express.static(path.join(process.cwd(), "tests")));
+  
   // DWARVES ENDPOINTS
   
   // Get all dwarves
