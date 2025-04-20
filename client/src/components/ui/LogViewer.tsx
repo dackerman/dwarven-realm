@@ -67,25 +67,75 @@ const LogViewer: React.FC<LogViewerProps> = ({ onClose }) => {
         const response = await apiRequest('GET', `${endpoint}?session=${currentSession}`);
         const data = await response.json();
         
-        // Parse logs into LogEntry format
-        const parsedLogs: LogEntry[] = data.logs.map((log: string) => {
-          // Extract timestamp if it exists in the format [timestamp]
-          const timestampMatch = log.match(/\[(.*?)\]/);
+        if (logType === 'api') {
+          // For API logs, we need special handling to group requests together
+          const parsedLogs: LogEntry[] = [];
+          let currentRequestTimestamp = '';
+          let currentRequestContent: string[] = [];
           
-          if (timestampMatch && timestampMatch.length > 1) {
-            return {
-              timestamp: timestampMatch[1],
-              content: log.replace(timestampMatch[0], '').trim()
-            };
+          data.logs.forEach((log: string) => {
+            // Check if this is a header line (contains "Request & Response")
+            if (log.includes("=== OpenAI API Request & Response Log ===")) {
+              // Skip the header
+              return;
+            }
+            
+            // Extract timestamp if it exists in the format [timestamp]
+            const timestampMatch = log.match(/\[(.*?)\]/);
+            
+            if (timestampMatch && timestampMatch.length > 1) {
+              // This is the start of a new API request
+              
+              // If we have a previous request collected, add it to the logs
+              if (currentRequestContent.length > 0) {
+                parsedLogs.push({
+                  timestamp: currentRequestTimestamp,
+                  content: currentRequestContent.join('\n')
+                });
+                currentRequestContent = [];
+              }
+              
+              // Start a new request
+              currentRequestTimestamp = timestampMatch[1];
+              const content = log.replace(timestampMatch[0], '').trim();
+              currentRequestContent.push(content);
+            } else if (currentRequestContent.length > 0) {
+              // Add to the current request
+              currentRequestContent.push(log);
+            }
+          });
+          
+          // Don't forget to add the last request
+          if (currentRequestContent.length > 0) {
+            parsedLogs.push({
+              timestamp: currentRequestTimestamp,
+              content: currentRequestContent.join('\n')
+            });
           }
           
-          return {
-            timestamp: '',
-            content: log
-          };
-        });
+          setLogs(parsedLogs);
+        } else {
+          // Regular logs (events, dialogues)
+          const parsedLogs: LogEntry[] = data.logs.map((log: string) => {
+            // Extract timestamp if it exists in the format [timestamp]
+            const timestampMatch = log.match(/\[(.*?)\]/);
+            
+            if (timestampMatch && timestampMatch.length > 1) {
+              return {
+                timestamp: timestampMatch[1],
+                content: log.replace(timestampMatch[0], '').trim()
+              };
+            }
+            
+            return {
+              timestamp: '',
+              content: log
+            };
+          });
+          
+          setLogs(parsedLogs);
+        }
         
-        setLogs(parsedLogs);
         setLoading(false);
       } catch (error) {
         console.error(`Failed to fetch ${logType} logs:`, error);
