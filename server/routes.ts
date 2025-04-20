@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { z } from "zod";
 import { TaskType, BuildingType, ResourceType } from "../shared/schema";
+import { logger } from "./logger";
 
 // Setup OpenAI client
 const openai = new OpenAI({
@@ -77,9 +78,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const updates = req.body;
+      
+      // Get the original dwarf state to compare changes
+      const originalDwarf = await storage.getDwarf(id);
+      if (!originalDwarf) {
+        return res.status(404).json({ message: "Dwarf not found" });
+      }
+      
       const updatedDwarf = await storage.updateDwarf(id, updates);
       if (!updatedDwarf) {
-        return res.status(404).json({ message: "Dwarf not found" });
+        return res.status(404).json({ message: "Dwarf not found after update" });
+      }
+      
+      // Log task changes
+      if (originalDwarf.currentTask !== updatedDwarf.currentTask) {
+        logger.logDwarfEvent(
+          id, 
+          updatedDwarf.name, 
+          "TASK_CHANGE",
+          `Changed task from ${originalDwarf.currentTask || 'none'} to ${updatedDwarf.currentTask || 'none'}`,
+          { x: updatedDwarf.x, y: updatedDwarf.y }
+        );
+      }
+      
+      // Log position changes
+      if (originalDwarf.x !== updatedDwarf.x || originalDwarf.y !== updatedDwarf.y) {
+        logger.logDwarfEvent(
+          id, 
+          updatedDwarf.name, 
+          "POSITION_CHANGE",
+          `Moved from (${originalDwarf.x}, ${originalDwarf.y}) to (${updatedDwarf.x}, ${updatedDwarf.y})`,
+          { x: updatedDwarf.x, y: updatedDwarf.y }
+        );
+      }
+      
+      // Log state changes
+      if (originalDwarf.state !== updatedDwarf.state) {
+        logger.logDwarfEvent(
+          id, 
+          updatedDwarf.name, 
+          "STATE_CHANGE",
+          `Changed state from ${originalDwarf.state} to ${updatedDwarf.state}`,
+          { x: updatedDwarf.x, y: updatedDwarf.y }
+        );
+      }
+      
+      // If the dwarf said something (currentDialogue was updated)
+      if (updates.currentDialogue) {
+        logger.logDwarfDialogue(
+          id,
+          updatedDwarf.name,
+          updates.currentDialogue,
+          updatedDwarf.currentTask || undefined
+        );
       }
       
       res.json(updatedDwarf);
@@ -258,10 +309,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid task or dwarf ID" });
       }
       
-      const updatedTask = await storage.assignTask(taskId, dwarfId);
-      if (!updatedTask) {
+      // Get the dwarf and task information before the update
+      const dwarf = await storage.getDwarf(dwarfId);
+      const task = await storage.getTask(taskId);
+      
+      if (!dwarf) {
+        return res.status(404).json({ message: "Dwarf not found" });
+      }
+      
+      if (!task) {
         return res.status(404).json({ message: "Task not found" });
       }
+      
+      const updatedTask = await storage.assignTask(taskId, dwarfId);
+      if (!updatedTask) {
+        return res.status(404).json({ message: "Task not found after update" });
+      }
+      
+      // Log the task assignment
+      logger.logDwarfEvent(
+        dwarfId,
+        dwarf.name,
+        "TASK_ASSIGNED",
+        `Assigned task #${taskId} of type ${updatedTask.type}` + 
+        (updatedTask.target ? ` at location (${updatedTask.target.x}, ${updatedTask.target.y})` : ''),
+        { x: dwarf.x, y: dwarf.y }
+      );
       
       res.json(updatedTask);
     } catch (error) {
@@ -327,10 +400,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!process.env.OPENAI_API_KEY) {
         // Return mock response when no API key is available
         const mockResponse = generateMockAIResponse(messages);
+        logger.logApiRequest("mock", messages, mockResponse);
         return res.json({ response: mockResponse });
       }
       
-      // Log OpenAI API request
+      // Log OpenAI API request to console
       console.log("OpenAI API Request:");
       console.log("Model: gpt-4o-mini");
       console.log("Messages:", JSON.stringify(messages.map(m => ({ role: m.role, content: m.content })), null, 2));
@@ -343,10 +417,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         temperature: 0.7,
       });
       
-      // Log OpenAI API response
-      console.log("OpenAI API Response:", completion.choices[0]?.message?.content);
-      
       const aiResponse = completion.choices[0]?.message?.content || "No response from AI";
+      
+      // Log OpenAI API response to console
+      console.log("OpenAI API Response:", aiResponse);
+      
+      // Log API request and response to file
+      logger.logApiRequest("gpt-4o-mini", messages, aiResponse);
+      
+      // Extract dwarf information from system message if available
+      const systemMessage = messages.find(m => m.role === "system")?.content || "";
+      const dwarfNameMatch = systemMessage.match(/You are a dwarf named (\w+)/);
+      
+      if (dwarfNameMatch && dwarfNameMatch[1]) {
+        const dwarfName = dwarfNameMatch[1];
+        // Extract ID from system message or use 0 if not found
+        const dwarfIdMatch = systemMessage.match(/Dwarf #(\d+)/);
+        const dwarfId = dwarfIdMatch ? parseInt(dwarfIdMatch[1]) : 0;
+        
+        // Log the dwarf's dialogue
+        logger.logDwarfDialogue(dwarfId, dwarfName, aiResponse, "AI Response");
+      }
+      
       res.json({ response: aiResponse });
     } catch (error: any) {
       console.error("OpenAI API error:", error.response?.data || error.message);
