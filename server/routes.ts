@@ -330,6 +330,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ response: mockResponse });
       }
       
+      // Log OpenAI API request
+      console.log("OpenAI API Request:");
+      console.log("Model: gpt-4o-mini");
+      console.log("Messages:", JSON.stringify(messages.map(m => ({ role: m.role, content: m.content })), null, 2));
+      
       // Call OpenAI API
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -337,6 +342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         max_tokens: 100,
         temperature: 0.7,
       });
+      
+      // Log OpenAI API response
+      console.log("OpenAI API Response:", completion.choices[0]?.message?.content);
       
       const aiResponse = completion.choices[0]?.message?.content || "No response from AI";
       res.json({ response: aiResponse });
