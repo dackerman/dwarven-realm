@@ -224,18 +224,21 @@ const MobileControls: React.FC = () => {
   }, []);
   
   return (
-    <div 
-      ref={touchAreaRef}
-      className="absolute inset-0 touch-none z-10 pointer-events-auto"
-      style={{ touchAction: 'none' }}
-    >
+    <>
+      {/* Main touch area - must be behind UI elements so UI buttons work */}
+      <div 
+        ref={touchAreaRef}
+        className="absolute inset-0 touch-none z-0 pointer-events-auto"
+        style={{ touchAction: 'none' }}
+      ></div>
+      
       {/* Debug panel - Added to help troubleshoot */}
-      <div className="absolute top-4 left-4 p-2 rounded-lg bg-red-600/80 text-white text-xs pointer-events-none">
+      <div className="absolute top-16 left-4 p-2 rounded-lg bg-red-600/80 text-white text-xs pointer-events-none z-20">
         Debug: {debugInfo}
       </div>
       
       {/* Information panel in the bottom corner to indicate touch controls are available */}
-      <div className="absolute bottom-4 right-4 p-2 rounded-lg bg-gray-900/80 text-white text-sm pointer-events-none">
+      <div className="absolute bottom-20 right-4 p-2 rounded-lg bg-gray-900/80 text-white text-sm pointer-events-none z-20">
         <div className="flex items-center space-x-2 mb-1">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
@@ -258,7 +261,7 @@ const MobileControls: React.FC = () => {
           <span>Rotate: two finger twist</span>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

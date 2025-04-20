@@ -377,8 +377,27 @@ const SceneSetup: React.FC = () => {
   );
 };
 
-// Main IsometricScene component
+// Main IsometricScene component with mobile support
 const IsometricScene: React.FC = () => {
+  // Add a debug message to the console to verify component is loaded
+  React.useEffect(() => {
+    console.log('IsometricScene component mounted');
+    
+    // Add dummy touch event listeners to document to ensure they're enabled
+    const enableTouchSupport = () => {
+      document.addEventListener('touchstart', () => {}, { passive: false });
+      document.addEventListener('touchmove', () => {}, { passive: false });
+      document.addEventListener('touchend', () => {}, { passive: false });
+      console.log('Global touch event listeners added');
+    };
+    
+    enableTouchSupport();
+    
+    return () => {
+      console.log('IsometricScene component unmounted');
+    };
+  }, []);
+  
   return <SceneSetup />;
 };
 

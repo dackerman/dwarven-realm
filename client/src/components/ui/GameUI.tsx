@@ -105,8 +105,47 @@ const GameUI: React.FC = () => {
     playSuccess();
   };
   
+  // Add enhanced touch handling specifically for UI buttons
+  useEffect(() => {
+    // Ensure all buttons have proper touch handling
+    const allButtons = document.querySelectorAll('button');
+    
+    // Add these attributes to each button to improve mobile responsiveness
+    allButtons.forEach(button => {
+      // These attributes help improve touch response on mobile
+      button.setAttribute('tabindex', '0');
+      button.style.touchAction = 'manipulation';
+      button.style.webkitTapHighlightColor = 'rgba(0,0,0,0)';
+      button.style.webkitTouchCallout = 'none';
+      button.style.userSelect = 'none';
+      
+      // Add a tap effect (will be removed after 150ms)
+      button.addEventListener('touchstart', function() {
+        this.classList.add('touch-active');
+        setTimeout(() => {
+          this.classList.remove('touch-active');
+        }, 150);
+      });
+    });
+    
+    // Add special CSS for active touch states
+    const style = document.createElement('style');
+    style.textContent = `
+      .touch-active {
+        transform: scale(0.97);
+        opacity: 0.9;
+        transition: transform 0.1s, opacity 0.1s;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, [isGameMenuOpen]); // Re-run when menu opens or closes
+  
   return (
-    <div className="absolute inset-0 pointer-events-none">
+    <div className="absolute inset-0 pointer-events-none z-10">
       {/* Top Bar - Time and Weather */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-900/80 text-white px-4 py-2 rounded-lg flex items-center space-x-4 pointer-events-auto">
         <div className="flex items-center space-x-2">
@@ -149,13 +188,14 @@ const GameUI: React.FC = () => {
       </div>
       
       {/* Bottom Left - Controls */}
-      <div className="absolute bottom-4 left-4 flex flex-col space-y-2 pointer-events-auto">
-        {/* Sound Button */}
+      <div className="fixed bottom-4 left-4 flex flex-col space-y-2 z-50">
+        {/* Sound Button - Made larger and more prominent for mobile */}
         <button 
-          className="flex items-center space-x-2 bg-gray-800 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors shadow-lg active:shadow-sm active:translate-y-px"
           onClick={handleToggleSound}
+          style={{ touchAction: 'manipulation' }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             {isMuted ? (
               <>
                 <line x1="3" y1="3" x2="21" y2="21"></line>
@@ -166,35 +206,37 @@ const GameUI: React.FC = () => {
             )}
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
           </svg>
-          <span className="font-medium">{isMuted ? 'Unmute' : 'Mute'}</span>
+          <span className="font-medium text-base">{isMuted ? 'Unmute' : 'Mute'}</span>
         </button>
         
-        {/* Menu Button */}
+        {/* Menu Button - Made larger and more prominent for mobile */}
         <button 
-          className={`flex items-center space-x-2 bg-gray-800 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors ${isGameMenuOpen ? 'ring-2 ring-yellow-400' : ''}`}
+          className={`flex items-center space-x-2 bg-gray-800 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors shadow-lg active:shadow-sm active:translate-y-px ${isGameMenuOpen ? 'ring-2 ring-yellow-400' : ''}`}
           onClick={handleToggleGameMenu}
+          style={{ touchAction: 'manipulation' }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="4" y1="12" x2="20" y2="12"></line>
             <line x1="4" y1="6" x2="20" y2="6"></line>
             <line x1="4" y1="18" x2="20" y2="18"></line>
           </svg>
-          <span className="font-medium">Settings</span>
+          <span className="font-medium text-base">Settings</span>
         </button>
         
-        {/* Logs Button */}
+        {/* Logs Button - Made larger and more prominent for mobile */}
         <button 
-          className={`flex items-center space-x-2 bg-gray-800 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors ${isLogViewerOpen ? 'ring-2 ring-yellow-400' : ''}`}
+          className={`flex items-center space-x-2 bg-gray-800 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors shadow-lg active:shadow-sm active:translate-y-px ${isLogViewerOpen ? 'ring-2 ring-yellow-400' : ''}`}
           onClick={() => setIsLogViewerOpen(true)}
+          style={{ touchAction: 'manipulation' }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
             <line x1="8" y1="7" x2="15" y2="7"></line>
             <line x1="8" y1="12" x2="17" y2="12"></line>
             <line x1="8" y1="17" x2="12" y2="17"></line>
           </svg>
-          <span className="font-medium">Logs</span>
+          <span className="font-medium text-base">Logs</span>
         </button>
       </div>
       
