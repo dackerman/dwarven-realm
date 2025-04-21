@@ -70,6 +70,9 @@ const SceneSetup: React.FC = () => {
     
     // Handle all camera control events coming from MobileControls component
     const handleCameraControl = (e: Event) => {
+      // Prevent event bubbling and default actions
+      e.stopPropagation();
+      
       const customEvent = e as CustomEvent<{
         action: 'pan' | 'zoom' | 'rotate', 
         deltaX?: number, 
@@ -80,9 +83,6 @@ const SceneSetup: React.FC = () => {
       
       // Extract event details
       const { action, deltaX, deltaY, delta, angle } = customEvent.detail;
-      
-      // Log the event for debugging
-      console.log('Mobile camera control:', action, customEvent.detail);
       
       // Handle panning (one-finger drag)
       if (action === 'pan' && deltaX !== undefined && deltaY !== undefined) {
@@ -108,8 +108,6 @@ const SceneSetup: React.FC = () => {
         const distanceScale = camera.position.length() / 15;
         const scaledSensitivity = MOBILE_PAN_SENSITIVITY * Math.max(1, distanceScale);
         
-        console.log(`Using scaled sensitivity: ${scaledSensitivity.toFixed(2)} (distance=${distanceScale.toFixed(2)})`);
-        
         // Move the camera directly by updating its position
         // Note: Reversed deltaX and deltaY for more intuitive movement
         camera.position.add(
@@ -121,13 +119,6 @@ const SceneSetup: React.FC = () => {
         
         // Make sure the camera still looks at the center
         camera.lookAt(0, 0, 0);
-        
-        // Log the new position
-        console.log('Camera moved to:', 
-          camera.position.x.toFixed(2), 
-          camera.position.y.toFixed(2), 
-          camera.position.z.toFixed(2)
-        );
         
         // Force update
         updateCamera();
@@ -145,9 +136,6 @@ const SceneSetup: React.FC = () => {
         const distance = camera.position.length();
         const scaledSensitivity = MOBILE_ZOOM_SENSITIVITY * Math.max(0.5, distance / 15);
         
-        // Log the sensitivity scaling
-        console.log(`Zoom with delta=${delta.toFixed(4)}, scaled sensitivity=${scaledSensitivity.toFixed(2)}`);
-        
         // Move camera along this vector (negative delta = zoom in toward center)
         const moveAmount = delta * scaledSensitivity;
         
@@ -159,14 +147,6 @@ const SceneSetup: React.FC = () => {
         // Only allow zoom if we're not too close to ground or too far away
         if (newPosition.length() > 5 && newPosition.length() < 50) {
           camera.position.copy(newPosition);
-          
-          // Log what happened
-          console.log('Camera zoomed to:', 
-            camera.position.x.toFixed(2), 
-            camera.position.y.toFixed(2), 
-            camera.position.z.toFixed(2),
-            `(distance: ${newPosition.length().toFixed(2)})`
-          );
           
           // Make sure we're still looking at the center
           camera.lookAt(0, 0, 0);
@@ -182,8 +162,6 @@ const SceneSetup: React.FC = () => {
         
         // Calculate the rotation amount
         const rotationAmount = angle * MOBILE_ROTATION_SENSITIVITY;
-        
-        console.log(`Rotating camera with angle=${angle.toFixed(6)}, rotationAmount=${rotationAmount.toFixed(4)}`);
         
         // Create a pivot point at the origin (0,0,0)
         const pivotPoint = new THREE.Vector3(0, 0, 0);
@@ -209,14 +187,6 @@ const SceneSetup: React.FC = () => {
         // Update our rotation tracker
         cameraRotation.current += rotationAmount;
         
-        // Log what happened
-        console.log('Camera rotated, new position:', 
-          camera.position.x.toFixed(2), 
-          camera.position.y.toFixed(2), 
-          camera.position.z.toFixed(2),
-          `(total rotation: ${cameraRotation.current.toFixed(4)})`
-        );
-        
         // Force update
         updateCamera();
       }
@@ -224,7 +194,6 @@ const SceneSetup: React.FC = () => {
     
     // Register the event listener
     window.addEventListener('camera-control', handleCameraControl);
-    console.log('Mobile camera controls activated');
     
     // Clean up on component unmount
     return () => {
@@ -334,7 +303,6 @@ const SceneSetup: React.FC = () => {
       if (Math.abs(pendingRotation.current) < 0.001) {
         // Clean up any tiny remaining rotation to avoid floating point errors
         pendingRotation.current = 0;
-        console.log('Rotation complete. Total camera rotation:', cameraRotation.current);
       }
     }
     

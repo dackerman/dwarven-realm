@@ -119,30 +119,56 @@ const GameUI: React.FC = () => {
       button.style.webkitTouchCallout = 'none';
       button.style.userSelect = 'none';
       
+      // Remove any existing event listeners
+      const newButton = button.cloneNode(true);
+      if (button.parentNode) {
+        button.parentNode.replaceChild(newButton, button);
+      }
+      
       // Add a tap effect (will be removed after 150ms)
-      button.addEventListener('touchstart', function() {
-        this.classList.add('touch-active');
+      newButton.addEventListener('touchstart', function(e) {
+        e.stopPropagation(); // Prevent event from bubbling
+        (this as HTMLElement).classList.add('touch-active');
         setTimeout(() => {
-          this.classList.remove('touch-active');
+          (this as HTMLElement).classList.remove('touch-active');
         }, 150);
+      }, { passive: false });
+      
+      // Make sure click events work too
+      newButton.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent event from bubbling
+        // The original onClick handler is preserved by cloneNode(true)
       });
     });
     
     // Add special CSS for active touch states
-    const style = document.createElement('style');
-    style.textContent = `
-      .touch-active {
-        transform: scale(0.97);
-        opacity: 0.9;
-        transition: transform 0.1s, opacity 0.1s;
-      }
-    `;
-    document.head.appendChild(style);
+    const styleId = 'mobile-touch-styles';
+    let style = document.getElementById(styleId) as HTMLStyleElement;
+    
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        .touch-active {
+          transform: scale(0.97);
+          opacity: 0.9;
+          transition: transform 0.1s, opacity 0.1s;
+        }
+        
+        button {
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          user-select: none;
+          touch-action: manipulation;
+        }
+      `;
+      document.head.appendChild(style);
+    }
     
     return () => {
-      document.head.removeChild(style);
+      // Don't remove the style on unmount - it may be needed globally
     };
-  }, [isGameMenuOpen]); // Re-run when menu opens or closes
+  }, [isGameMenuOpen, isLogViewerOpen]); // Re-run when UI state changes
   
   return (
     <div className="absolute inset-0 pointer-events-none z-10">
@@ -188,12 +214,17 @@ const GameUI: React.FC = () => {
       </div>
       
       {/* Bottom Left - Controls */}
-      <div className="fixed bottom-4 left-4 flex flex-col space-y-2 z-50">
+      <div className="fixed bottom-4 left-4 flex flex-col space-y-2 z-50 pointer-events-auto">
         {/* Sound Button - Made larger and more prominent for mobile */}
         <button 
           className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors shadow-lg active:shadow-sm active:translate-y-px"
           onClick={handleToggleSound}
-          style={{ touchAction: 'manipulation' }}
+          style={{ 
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+            WebkitTouchCallout: 'none'
+          }}
+          id="sound-button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             {isMuted ? (
@@ -213,7 +244,12 @@ const GameUI: React.FC = () => {
         <button 
           className={`flex items-center space-x-2 bg-gray-800 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors shadow-lg active:shadow-sm active:translate-y-px ${isGameMenuOpen ? 'ring-2 ring-yellow-400' : ''}`}
           onClick={handleToggleGameMenu}
-          style={{ touchAction: 'manipulation' }}
+          style={{ 
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+            WebkitTouchCallout: 'none' 
+          }}
+          id="settings-button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="4" y1="12" x2="20" y2="12"></line>
@@ -227,7 +263,12 @@ const GameUI: React.FC = () => {
         <button 
           className={`flex items-center space-x-2 bg-gray-800 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors shadow-lg active:shadow-sm active:translate-y-px ${isLogViewerOpen ? 'ring-2 ring-yellow-400' : ''}`}
           onClick={() => setIsLogViewerOpen(true)}
-          style={{ touchAction: 'manipulation' }}
+          style={{ 
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'rgba(0,0,0,0)',
+            WebkitTouchCallout: 'none'
+          }}
+          id="logs-button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -436,8 +477,10 @@ const GameUI: React.FC = () => {
       {/* Conversation Display - only show if dialogues are enabled in settings */}
       {settings.showDialogues && <ConversationDisplay maxMessages={10} />}
       
-      {/* Mobile Controls - only show on mobile devices */}
-      {useIsMobile() && <MobileControls />}
+      {/* Mobile Controls - always include the component but control visibility */}
+      <div className={useIsMobile() ? 'block' : 'hidden'}>
+        <MobileControls />
+      </div>
       
       {/* Log Viewer */}
       {isLogViewerOpen && (

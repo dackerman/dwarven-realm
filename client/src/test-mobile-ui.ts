@@ -45,27 +45,23 @@ export function testMobileUI() {
     
     // Check if settings panel appears
     setTimeout(() => {
-      // Use a standard DOM selector instead of jQuery-style :contains()
-      const settingsPanel = document.querySelector('h2');
-      const panelVisible = settingsPanel && settingsPanel.textContent?.includes('Game Settings');
+      // Use a more reliable selector to find the settings panel
+      const settingsPanel = document.querySelector('.bg-gray-900\\/90');
+      const settingsHeading = settingsPanel?.querySelector('h2');
+      const panelVisible = settingsHeading && settingsHeading.textContent?.includes('Game Settings');
       console.log(`Settings panel appeared: ${!!panelVisible}`);
       
-      if (settingsPanel) {
+      if (settingsPanel && panelVisible) {
         // Try to close the panel using a more robust selector
-        const closeButton = Array.from(document.querySelectorAll('button')).find(
-          btn => btn.textContent?.includes('Close')
-        );
+        const closeButton = settingsPanel.querySelector('button:last-child');
         if (closeButton) {
           console.log('Clicking Close button...');
           (closeButton as HTMLButtonElement).click();
           
           setTimeout(() => {
             // Check if panel is still visible
-            const h2Elements = document.querySelectorAll('h2');
-            const panelStillVisible = Array.from(h2Elements).some(el => 
-              el.textContent?.includes('Game Settings')
-            );
-            console.log(`Settings panel closed: ${!panelStillVisible}`);
+            const stillVisible = document.querySelector('.bg-gray-900\\/90 h2');
+            console.log(`Settings panel closed: ${!stillVisible}`);
           }, 100);
         }
       }

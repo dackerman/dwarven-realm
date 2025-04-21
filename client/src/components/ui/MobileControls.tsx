@@ -62,7 +62,7 @@ const MobileControls: React.FC = () => {
       return;
     }
     
-    console.log('Mobile controls initialized with element:', touchArea);
+    // Mobile controls initialized
     setDebugInfo('Mobile controls initialized');
     
     // Calculate distance between two touch points
@@ -82,7 +82,7 @@ const MobileControls: React.FC = () => {
     
     // Handle touch start
     const handleTouchStart = (e: TouchEvent) => {
-      console.log('Touch start detected', e.touches.length, 'touches');
+      // Touch start detected
       setDebugInfo(`Touch start: ${e.touches.length} touches`);
       
       touchState.touchCount = e.touches.length;
@@ -94,7 +94,7 @@ const MobileControls: React.FC = () => {
         touchState.isRotating = false;
         touchState.lastX = e.touches[0].clientX;
         touchState.lastY = e.touches[0].clientY;
-        console.log('Single touch at', touchState.lastX, touchState.lastY);
+        // Single touch captured
       } 
       else if (touchState.touchCount === 2) {
         // Two touches for pinch zoom and rotation
@@ -103,12 +103,14 @@ const MobileControls: React.FC = () => {
         touchState.isRotating = true;
         touchState.lastDist = getDistance(e.touches[0], e.touches[1]);
         touchState.lastAngle = getAngle(e.touches[0], e.touches[1]);
-        console.log('Two touches, initial distance:', touchState.lastDist);
+        // Two touches detected
       }
     };
     
     // Handle touch move
     const handleTouchMove = (e: TouchEvent) => {
+      // Stop propagation and prevent default
+      e.stopPropagation();
       e.preventDefault(); // Prevent default scrolling behavior
       
       if (touchState.touchCount === 1 && touchState.isDragging) {
@@ -121,8 +123,6 @@ const MobileControls: React.FC = () => {
         const RAW_TOUCH_THRESHOLD = 0.2; // Very small threshold to catch all movements
         
         if (Math.abs(deltaX) > RAW_TOUCH_THRESHOLD || Math.abs(deltaY) > RAW_TOUCH_THRESHOLD) {
-          console.log('Pan: deltaX =', deltaX, 'deltaY =', deltaY);
-          
           // Send raw delta values scaled by small factor to avoid tiny movements
           emitCameraControl({
             action: 'pan',
@@ -149,7 +149,6 @@ const MobileControls: React.FC = () => {
             // Normalize the delta to avoid excessive zoom speeds with very small values
             const normalizedDelta = deltaDist * 0.01;
             
-            console.log(`Pinch: ${deltaDist > 0 ? 'out (zoom in)' : 'in (zoom out)'}, delta: ${normalizedDelta.toFixed(4)}`);
             
             // Send the normalized value - our camera handler will apply the appropriate scaling
             emitCameraControl({
@@ -171,7 +170,6 @@ const MobileControls: React.FC = () => {
           const ROTATION_THRESHOLD = 0.001;
           
           if (Math.abs(deltaAngle) > ROTATION_THRESHOLD) {
-            console.log('Rotate: angle delta =', deltaAngle.toFixed(4));
             
             // Just send the raw angle - scaling happens in camera handler
             emitCameraControl({
@@ -187,7 +185,7 @@ const MobileControls: React.FC = () => {
     
     // Handle touch end
     const handleTouchEnd = (e: TouchEvent) => {
-      console.log('Touch end, remaining touches:', e.touches.length);
+      // Touch end detected
       setDebugInfo(`Touch end: ${e.touches.length} touches remaining`);
       
       touchState.touchCount = e.touches.length;
@@ -228,17 +226,23 @@ const MobileControls: React.FC = () => {
       {/* Main touch area - must be behind UI elements so UI buttons work */}
       <div 
         ref={touchAreaRef}
-        className="absolute inset-0 touch-none z-0 pointer-events-auto"
-        style={{ touchAction: 'none' }}
+        className="absolute inset-0 touch-none z-5 pointer-events-auto"
+        style={{ 
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none'
+        }}
+        id="mobile-touch-area"
       ></div>
       
       {/* Debug panel - Added to help troubleshoot */}
-      <div className="absolute top-16 left-4 p-2 rounded-lg bg-red-600/80 text-white text-xs pointer-events-none z-20">
+      <div className="absolute top-16 left-4 p-2 rounded-lg bg-red-600/80 text-white text-xs pointer-events-none z-50">
         Debug: {debugInfo}
       </div>
       
       {/* Information panel in the bottom corner to indicate touch controls are available */}
-      <div className="absolute bottom-20 right-4 p-2 rounded-lg bg-gray-900/80 text-white text-sm pointer-events-none z-20">
+      <div className="absolute bottom-20 right-4 p-2 rounded-lg bg-gray-900/80 text-white text-sm pointer-events-none z-50">
         <div className="flex items-center space-x-2 mb-1">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
