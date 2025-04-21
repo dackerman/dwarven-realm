@@ -15,22 +15,24 @@ const openai = new OpenAI({
 
 // Message schema for OpenAI API
 const aiMessageSchema = z.object({
-  messages: z.array(z.object({
-    role: z.enum(["system", "user", "assistant"]),
-    content: z.string()
-  }))
+  messages: z.array(
+    z.object({
+      role: z.enum(["system", "user", "assistant"]),
+      content: z.string(),
+    }),
+  ),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Prefix all API routes with /api
-  
+
   // Health check endpoint
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });
   });
-  
+
   // DWARVES ENDPOINTS
-  
+
   // Get all dwarves
   app.get("/api/dwarves", async (_req, res, next) => {
     try {
@@ -40,7 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // Get dwarf by ID
   app.get("/api/dwarves/:id", async (req, res, next) => {
     try {
@@ -48,18 +50,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid dwarf ID" });
       }
-      
+
       const dwarf = await storage.getDwarf(id);
       if (!dwarf) {
         return res.status(404).json({ message: "Dwarf not found" });
       }
-      
+
       res.json(dwarf);
     } catch (error) {
       next(error);
     }
   });
-  
+
   // Create a new dwarf
   app.post("/api/dwarves", async (req, res, next) => {
     try {
@@ -70,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // Update a dwarf
   app.patch("/api/dwarves/:id", async (req, res, next) => {
     try {
@@ -78,71 +80,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid dwarf ID" });
       }
-      
+
       const updates = req.body;
-      
+
       // Get the original dwarf state to compare changes
       const originalDwarf = await storage.getDwarf(id);
       if (!originalDwarf) {
         return res.status(404).json({ message: "Dwarf not found" });
       }
-      
+
       const updatedDwarf = await storage.updateDwarf(id, updates);
       if (!updatedDwarf) {
-        return res.status(404).json({ message: "Dwarf not found after update" });
+        return res
+          .status(404)
+          .json({ message: "Dwarf not found after update" });
       }
-      
+
       // Log task changes
       if (originalDwarf.currentTask !== updatedDwarf.currentTask) {
         logger.logDwarfEvent(
-          id, 
-          updatedDwarf.name, 
+          id,
+          updatedDwarf.name,
           "TASK_CHANGE",
-          `Changed task from ${originalDwarf.currentTask || 'none'} to ${updatedDwarf.currentTask || 'none'}`,
-          { x: updatedDwarf.x, y: updatedDwarf.y }
+          `Changed task from ${originalDwarf.currentTask || "none"} to ${updatedDwarf.currentTask || "none"}`,
+          { x: updatedDwarf.x, y: updatedDwarf.y },
         );
       }
-      
+
       // Log position changes
-      if (originalDwarf.x !== updatedDwarf.x || originalDwarf.y !== updatedDwarf.y) {
+      if (
+        originalDwarf.x !== updatedDwarf.x ||
+        originalDwarf.y !== updatedDwarf.y
+      ) {
         logger.logDwarfEvent(
-          id, 
-          updatedDwarf.name, 
+          id,
+          updatedDwarf.name,
           "POSITION_CHANGE",
           `Moved from (${originalDwarf.x}, ${originalDwarf.y}) to (${updatedDwarf.x}, ${updatedDwarf.y})`,
-          { x: updatedDwarf.x, y: updatedDwarf.y }
+          { x: updatedDwarf.x, y: updatedDwarf.y },
         );
       }
-      
+
       // Log state changes
       if (originalDwarf.state !== updatedDwarf.state) {
         logger.logDwarfEvent(
-          id, 
-          updatedDwarf.name, 
+          id,
+          updatedDwarf.name,
           "STATE_CHANGE",
           `Changed state from ${originalDwarf.state} to ${updatedDwarf.state}`,
-          { x: updatedDwarf.x, y: updatedDwarf.y }
+          { x: updatedDwarf.x, y: updatedDwarf.y },
         );
       }
-      
+
       // If the dwarf said something (currentDialogue was updated)
       if (updates.currentDialogue) {
         logger.logDwarfDialogue(
           id,
           updatedDwarf.name,
           updates.currentDialogue,
-          updatedDwarf.currentTask || undefined
+          updatedDwarf.currentTask || undefined,
         );
       }
-      
+
       res.json(updatedDwarf);
     } catch (error) {
       next(error);
     }
   });
-  
+
   // BUILDINGS ENDPOINTS
-  
+
   // Get all buildings
   app.get("/api/buildings", async (_req, res, next) => {
     try {
@@ -152,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // Get building by ID
   app.get("/api/buildings/:id", async (req, res, next) => {
     try {
@@ -160,18 +167,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid building ID" });
       }
-      
+
       const building = await storage.getBuilding(id);
       if (!building) {
         return res.status(404).json({ message: "Building not found" });
       }
-      
+
       res.json(building);
     } catch (error) {
       next(error);
     }
   });
-  
+
   // Create a new building
   app.post("/api/buildings", async (req, res, next) => {
     try {
@@ -182,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // Update a building
   app.patch("/api/buildings/:id", async (req, res, next) => {
     try {
@@ -190,21 +197,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid building ID" });
       }
-      
+
       const updates = req.body;
       const updatedBuilding = await storage.updateBuilding(id, updates);
       if (!updatedBuilding) {
         return res.status(404).json({ message: "Building not found" });
       }
-      
+
       res.json(updatedBuilding);
     } catch (error) {
       next(error);
     }
   });
-  
+
   // RESOURCES ENDPOINTS
-  
+
   // Get all resources
   app.get("/api/resources", async (_req, res, next) => {
     try {
@@ -214,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // Update a resource
   app.patch("/api/resources/:id", async (req, res, next) => {
     try {
@@ -222,21 +229,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid resource ID" });
       }
-      
+
       const updates = req.body;
       const updatedResource = await storage.updateResource(id, updates);
       if (!updatedResource) {
         return res.status(404).json({ message: "Resource not found" });
       }
-      
+
       res.json(updatedResource);
     } catch (error) {
       next(error);
     }
   });
-  
+
   // GAME STATE ENDPOINTS
-  
+
   // Get game state
   app.get("/api/game-state", async (_req, res, next) => {
     try {
@@ -246,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // Update game state
   app.patch("/api/game-state", async (req, res, next) => {
     try {
@@ -257,9 +264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // TASKS ENDPOINTS
-  
+
   // Get all tasks
   app.get("/api/tasks", async (_req, res, next) => {
     try {
@@ -269,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // Create a new task
   app.post("/api/tasks", async (req, res, next) => {
     try {
@@ -280,7 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
-  
+
   // Update a task
   app.patch("/api/tasks/:id", async (req, res, next) => {
     try {
@@ -288,236 +295,258 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid task ID" });
       }
-      
+
       const updates = req.body;
       const updatedTask = await storage.updateTask(id, updates);
       if (!updatedTask) {
         return res.status(404).json({ message: "Task not found" });
       }
-      
+
       res.json(updatedTask);
     } catch (error) {
       next(error);
     }
   });
-  
+
   // Assign task to dwarf
   app.post("/api/tasks/:id/assign", async (req, res, next) => {
     try {
       const taskId = parseInt(req.params.id);
       const { dwarfId } = req.body;
-      
+
       if (isNaN(taskId) || isNaN(dwarfId)) {
         return res.status(400).json({ message: "Invalid task or dwarf ID" });
       }
-      
+
       // Get the dwarf and task information before the update
       const dwarf = await storage.getDwarf(dwarfId);
       const task = await storage.getTask(taskId);
-      
+
       if (!dwarf) {
         return res.status(404).json({ message: "Dwarf not found" });
       }
-      
+
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
       }
-      
+
       const updatedTask = await storage.assignTask(taskId, dwarfId);
       if (!updatedTask) {
         return res.status(404).json({ message: "Task not found after update" });
       }
-      
+
       // Log the task assignment
       logger.logDwarfEvent(
         dwarfId,
         dwarf.name,
         "TASK_ASSIGNED",
-        `Assigned task #${taskId} of type ${updatedTask.type}` + 
-        (updatedTask.target ? ` at location (${updatedTask.target.x}, ${updatedTask.target.y})` : ''),
-        { x: dwarf.x, y: dwarf.y }
+        `Assigned task #${taskId} of type ${updatedTask.type}` +
+          (updatedTask.target
+            ? ` at location (${updatedTask.target.x}, ${updatedTask.target.y})`
+            : ""),
+        { x: dwarf.x, y: dwarf.y },
       );
-      
+
       res.json(updatedTask);
     } catch (error) {
       next(error);
     }
   });
-  
+
   // LOGGING ENDPOINTS
-  
+
   // Get available log sessions
   app.get("/api/logs/sessions", async (req, res, next) => {
     try {
       // Get all session directories in logs folder
-      const sessionsPath = path.join(process.cwd(), 'logs');
-      
+      const sessionsPath = path.join(process.cwd(), "logs");
+
       // Check if logs directory exists
       if (!fs.existsSync(sessionsPath)) {
         return res.json({ sessions: [] });
       }
-      
+
       // Get all directories in logs folder
       const sessionDirs = fs.readdirSync(sessionsPath).filter((dir: string) => {
         const stats = fs.statSync(path.join(sessionsPath, dir));
-        return stats.isDirectory() && dir.startsWith('session-');
+        return stats.isDirectory() && dir.startsWith("session-");
       });
-      
+
       // Sort by most recent first
       sessionDirs.sort((a: string, b: string) => {
         const statsA = fs.statSync(path.join(sessionsPath, a));
         const statsB = fs.statSync(path.join(sessionsPath, b));
         return statsB.mtime.getTime() - statsA.mtime.getTime();
       });
-      
+
       res.json({ sessions: sessionDirs });
     } catch (error) {
       next(error);
     }
   });
-  
+
   // Get dwarf events log
   app.get("/api/logs/events", async (req, res, next) => {
     try {
       const { session } = req.query;
-      
+
       if (!session) {
-        return res.status(400).json({ message: "Session parameter is required" });
+        return res
+          .status(400)
+          .json({ message: "Session parameter is required" });
       }
-      
+
       // Validate session name format to prevent directory traversal
       if (!/^session-[\d-T]+$/.test(session as string)) {
         return res.status(400).json({ message: "Invalid session format" });
       }
-      
-      const logFilePath = path.join(process.cwd(), 'logs', session as string, 'dwarf-events.log');
-      
+
+      const logFilePath = path.join(
+        process.cwd(),
+        "logs",
+        session as string,
+        "dwarf-events.log",
+      );
+
       // Check if file exists
       if (!fs.existsSync(logFilePath)) {
         return res.json({ logs: [] });
       }
-      
+
       // Read log file
-      const logContent = fs.readFileSync(logFilePath, 'utf8');
-      
+      const logContent = fs.readFileSync(logFilePath, "utf8");
+
       // Split log content into lines, remove empty lines
-      const logLines = logContent.split('\n').filter((line: string) => line.trim().length > 0);
-      
+      const logLines = logContent
+        .split("\n")
+        .filter((line: string) => line.trim().length > 0);
+
       res.json({ logs: logLines });
     } catch (error) {
       next(error);
     }
   });
-  
+
   // Get dwarf dialogues log
   app.get("/api/logs/dialogues", async (req, res, next) => {
     try {
       const { session } = req.query;
-      
+
       if (!session) {
-        return res.status(400).json({ message: "Session parameter is required" });
+        return res
+          .status(400)
+          .json({ message: "Session parameter is required" });
       }
-      
+
       // Validate session name format to prevent directory traversal
       if (!/^session-[\d-T]+$/.test(session as string)) {
         return res.status(400).json({ message: "Invalid session format" });
       }
-      
-      const logFilePath = path.join(process.cwd(), 'logs', session as string, 'dwarf-dialogues.log');
-      
+
+      const logFilePath = path.join(
+        process.cwd(),
+        "logs",
+        session as string,
+        "dwarf-dialogues.log",
+      );
+
       // Check if file exists
       if (!fs.existsSync(logFilePath)) {
         return res.json({ logs: [] });
       }
-      
+
       // Read log file
-      const logContent = fs.readFileSync(logFilePath, 'utf8');
-      
+      const logContent = fs.readFileSync(logFilePath, "utf8");
+
       // Split log content into lines, remove empty lines
-      const logLines = logContent.split('\n').filter((line: string) => line.trim().length > 0);
-      
+      const logLines = logContent
+        .split("\n")
+        .filter((line: string) => line.trim().length > 0);
+
       res.json({ logs: logLines });
     } catch (error) {
       next(error);
     }
   });
-  
+
   // Get OpenAI API log
   app.get("/api/logs/api", async (req, res, next) => {
     try {
       const { session } = req.query;
-      
+
       if (!session) {
-        return res.status(400).json({ message: "Session parameter is required" });
+        return res
+          .status(400)
+          .json({ message: "Session parameter is required" });
       }
-      
+
       // Validate session name format to prevent directory traversal
       if (!/^session-[\d-T]+$/.test(session as string)) {
         return res.status(400).json({ message: "Invalid session format" });
       }
-      
-      const logFilePath = path.join(process.cwd(), 'logs', session as string, 'openai-api.log');
-      
+
+      const logFilePath = path.join(
+        process.cwd(),
+        "logs",
+        session as string,
+        "openai-api.log",
+      );
+
       // Check if file exists
       if (!fs.existsSync(logFilePath)) {
         return res.json({ logs: [] });
       }
-      
+
       // Read log file
-      const logContent = fs.readFileSync(logFilePath, 'utf8');
-      
+      const logContent = fs.readFileSync(logFilePath, "utf8");
+
       // Split log content into lines, remove empty lines
-      const logLines = logContent.split('\n').filter((line: string) => line.trim().length > 0);
-      
+      const logLines = logContent
+        .split("\n")
+        .filter((line: string) => line.trim().length > 0);
+
       res.json({ logs: logLines });
     } catch (error) {
       next(error);
     }
   });
-  
+
   // Log dwarf event
   app.post("/api/log/event", async (req, res, next) => {
     try {
       const { dwarfId, dwarfName, eventType, details, location } = req.body;
-      
+
       // Validate required fields
       if (!dwarfId || !dwarfName || !eventType || !details) {
-        return res.status(400).json({ message: "Missing required logging fields" });
+        return res
+          .status(400)
+          .json({ message: "Missing required logging fields" });
       }
-      
+
       // Log the event
-      logger.logDwarfEvent(
-        dwarfId,
-        dwarfName,
-        eventType,
-        details,
-        location
-      );
-      
+      logger.logDwarfEvent(dwarfId, dwarfName, eventType, details, location);
+
       res.json({ success: true });
     } catch (error) {
       next(error);
     }
   });
-  
+
   // Log dwarf dialogue
   app.post("/api/log/dialogue", async (req, res, next) => {
     try {
       const { dwarfId, dwarfName, dialogue, context } = req.body;
-      
+
       // Validate required fields
       if (!dwarfId || !dwarfName || !dialogue) {
-        return res.status(400).json({ message: "Missing required logging fields" });
+        return res
+          .status(400)
+          .json({ message: "Missing required logging fields" });
       }
-      
+
       // Log the dialogue
-      logger.logDwarfDialogue(
-        dwarfId,
-        dwarfName,
-        dialogue,
-        context
-      );
-      
+      logger.logDwarfDialogue(dwarfId, dwarfName, dialogue, context);
+
       res.json({ success: true });
     } catch (error) {
       next(error);
@@ -525,59 +554,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // WORLD GENERATION ENDPOINT
-  
+
   // Generate world
   app.post("/api/world/generate", async (req, res, next) => {
     try {
       const { width, height, seed } = req.body;
-      
-      if (!width || !height || width < 10 || height < 10 || width > 100 || height > 100) {
-        return res.status(400).json({ 
-          message: "Invalid dimensions. Width and height must be between 10 and 100." 
+
+      if (
+        !width ||
+        !height ||
+        width < 10 ||
+        height < 10 ||
+        width > 100 ||
+        height > 100
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid dimensions. Width and height must be between 10 and 100.",
         });
       }
-      
+
       // Generate world
       const worldSeed = seed || Math.floor(Math.random() * 1000000);
       const world = await storage.generateWorld(width, height, worldSeed);
-      
+
       res.json({ success: true, world });
     } catch (error) {
       next(error);
     }
   });
-  
+
   // PATHFINDING ENDPOINT
-  
+
   // Find path between two points
   app.post("/api/pathfinding", async (req, res, next) => {
     try {
       const { start, end } = req.body;
-      
+
       if (!start || !end || !start.x || !start.y || !end.x || !end.y) {
         return res.status(400).json({ message: "Invalid start or end points" });
       }
-      
+
       const path = await storage.findPath(start, end);
       res.json(path);
     } catch (error) {
       next(error);
     }
   });
-  
+
   // AI ENDPOINT
-  
+
   // Send message to OpenAI API
   app.post("/api/ai/message", async (req, res, next) => {
     try {
       // Validate request body
       const parseResult = aiMessageSchema.safeParse(req.body);
       if (!parseResult.success) {
-        return res.status(400).json({ message: "Invalid message format", errors: parseResult.error });
+        return res
+          .status(400)
+          .json({
+            message: "Invalid message format",
+            errors: parseResult.error,
+          });
       }
-      
+
       const { messages } = parseResult.data;
-      
+
       // Check if API key is available
       if (!process.env.OPENAI_API_KEY) {
         // Return mock response when no API key is available
@@ -585,43 +627,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logger.logApiRequest("mock", messages, mockResponse);
         return res.json({ response: mockResponse });
       }
-      
+
       // Call OpenAI API
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
+        model: "o4-mini",
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
         max_tokens: 100,
         temperature: 0.7,
       });
-      
-      const aiResponse = completion.choices[0]?.message?.content || "No response from AI";
-      
+
+      const aiResponse =
+        completion.choices[0]?.message?.content || "No response from AI";
+
       // Log API request and response to file
-      logger.logApiRequest("gpt-4o-mini", messages, aiResponse);
-      
+      logger.logApiRequest("o4-mini", messages, aiResponse);
+
       // Extract dwarf information from system message if available
-      const systemMessage = messages.find(m => m.role === "system")?.content || "";
+      const systemMessage =
+        messages.find((m) => m.role === "system")?.content || "";
       const dwarfNameMatch = systemMessage.match(/You are a dwarf named (\w+)/);
-      
+
       if (dwarfNameMatch && dwarfNameMatch[1]) {
         const dwarfName = dwarfNameMatch[1];
         // Extract ID from system message or use 0 if not found
         const dwarfIdMatch = systemMessage.match(/Dwarf #(\d+)/);
         const dwarfId = dwarfIdMatch ? parseInt(dwarfIdMatch[1]) : 0;
-        
+
         // Log the dwarf's dialogue
         logger.logDwarfDialogue(dwarfId, dwarfName, aiResponse, "AI Response");
       }
-      
+
       res.json({ response: aiResponse });
     } catch (error: any) {
       console.error("OpenAI API error:", error.response?.data || error.message);
-      
+
       // Handle OpenAI API errors gracefully
       if (error.response?.status === 429) {
-        return res.status(429).json({ message: "OpenAI API rate limit exceeded, please try again later" });
+        return res
+          .status(429)
+          .json({
+            message: "OpenAI API rate limit exceeded, please try again later",
+          });
       }
-      
+
       // Fall back to mock responses if API fails
       const mockResponse = generateMockAIResponse(req.body.messages);
       res.json({ response: mockResponse });
@@ -634,8 +682,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Function to generate mock AI responses when API is unavailable
 function generateMockAIResponse(messages: any[]): string {
-  const userMessage = messages.find(m => m.role === "user")?.content || "";
-  
+  const userMessage = messages.find((m) => m.role === "user")?.content || "";
+
   // Check message content for determining response type
   if (userMessage.includes("hungry") || userMessage.includes("hunger")) {
     return "By me beard, I need some grub! The stomach's growlin' like an angry badger.";
@@ -660,7 +708,7 @@ function generateMockAIResponse(messages: any[]): string {
       "Where there's stone, there's a way!",
       "I could use an ale 'bout now.",
       "Don't suppose ye have any mead?",
-      "Keep yer feet on the ground!"
+      "Keep yer feet on the ground!",
     ];
     return responses[Math.floor(Math.random() * responses.length)];
   }
